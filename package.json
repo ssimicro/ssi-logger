@@ -1,0 +1,70 @@
+{
+  "name": "ssi-logger",
+  "version": "0.0.0",
+  "description": "Simplified logging for node.js modules",
+  "main": "ssi-logger.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "pretest": "jshint *.js",
+    "test": "mocha -R spec test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tcort/ssi-logger"
+  },
+  "keywords": [
+    "logging",
+    "logger",
+    "log",
+    "syslog"
+  ],
+  "author": "SSi Micro Ltd <propellorheads@ssimicro.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tcort/ssi-logger/issues"
+  },
+  "homepage": "https://github.com/tcort/ssi-logger",
+  "dependencies": {
+    "chalk": "^1.1.1",
+    "lodash": "^3.10.1",
+    "moment": "^2.10.6",
+    "modern-syslog": "^1.1.2",
+    "logformat": "^1.0.0"
+  },
+  "devDependencies": {
+    "expect.js": "^0.3.1",
+    "mocha": "^2.3.4",
+    "jshint": "^2.9.1-rc1"
+  },
+  "jshintConfig": {
+    "bitwise": true,
+    "curly": true,
+    "eqeqeq": true,
+    "forin": true,
+    "freeze": true,
+    "globalstrict": true,
+    "immed": true,
+    "indent": 4,
+    "moz": true,
+    "newcap": true,
+    "noarg": true,
+    "node": true,
+    "noempty": true,
+    "nonew": true,
+    "trailing": true,
+    "undef": true,
+    "smarttabs": true,
+    "strict": true,
+    "validthis": true,
+    "globals": {
+      "describe": false,
+      "it": false,
+      "before": false,
+      "beforeEach": false,
+      "after": false,
+      "afterEach": false
+    }
+  }
+}
