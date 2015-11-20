@@ -111,9 +111,9 @@ parameter causes an ISO 8601 format timestamp to be prepended to all console mes
 ### lib/transports/syslog ###
 
 `syslogTransport(log_facility[, mask])` logs messages to the system log using the specified `log_facility` (e.g.
-"LOG\_LOCAL5", "LOG\_SYSLOG", "LOG\_USER"). The `mask` parameter will set the minimum logging level (e.g. 'INFO',
-'DEBUG', 'ERR', etc). If `mask` is not specified, the default value is 'INFO'. For legacy
-compatibility, a value of `true` sets `mask` to 'DEBUG'.
+`LOG_LOCAL5`, `LOG_SYSLOG`, `LOG_USER`). The `mask` parameter will set the minimum logging level (e.g. `INFO`,
+`DEBUG`, `ERR`, etc). If `mask` is not specified, the default value is `INFO`. For legacy
+compatibility, a value of `true` sets `mask` to `DEBUG`.
 
 Standard Log Facilities:
 
@@ -170,7 +170,7 @@ Test with `logger`:
 
 Edit `/etc/rsyslog.conf`:
 
-    sudo -e /etc/syslog.conf
+    sudo -e /etc/rsyslog.conf
 
 Add the following line to `/etc/rsyslog.conf`:
 
