@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/tcort/ssi-logger"
+    "url": "git://github.com/ssimicro/ssi-logger"
   },
   "keywords": [
     "logging",
@@ -23,9 +23,9 @@
   "author": "SSi Micro Ltd <propellorheads@ssimicro.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tcort/ssi-logger/issues"
+    "url": "https://github.com/ssimicro/ssi-logger/issues"
   },
-  "homepage": "https://github.com/tcort/ssi-logger",
+  "homepage": "https://github.com/ssimicro/ssi-logger",
   "dependencies": {
     "chalk": "^1.1.1",
     "lodash": "^3.10.1",
