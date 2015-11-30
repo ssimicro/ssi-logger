@@ -67,16 +67,7 @@ Return value:
       callback(err);
     }
 
-Standard Log Levels:
-
-* `EMERG`
-* `ALERT`
-* `CRIT`
-* `ERR`
-* `WARNING`
-* `NOTICE`
-* `INFO`
-* `DEBUG`
+Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG`
 
 ## Transports
 
@@ -115,25 +106,9 @@ parameter causes an ISO 8601 format timestamp to be prepended to all console mes
 `DEBUG`, `ERR`, etc). If `mask` is not specified, the default value is `INFO`. For legacy
 compatibility, a value of `true` sets `mask` to `DEBUG`.
 
-Standard Log Facilities:
-
-*  `LOG_KERN`
-*  `LOG_USER`
-*  `LOG_MAIL`
-*  `LOG_DAEMON`
-*  `LOG_AUTH`
-*  `LOG_SYSLOG`
-*  `LOG_LPR`
-*  `LOG_NEWS`
-*  `LOG_UUCP`
-*  `LOG_LOCAL0`
-*  `LOG_LOCAL1`
-*  `LOG_LOCAL2`
-*  `LOG_LOCAL3`
-*  `LOG_LOCAL4`
-*  `LOG_LOCAL5`
-*  `LOG_LOCAL6`
-*  `LOG_LOCAL7`
+Standard Log Facilities: `LOG_KERN`, `LOG_USER`, `LOG_MAIL`, `LOG_DAEMON`, `LOG_AUTH`, `LOG_SYSLOG`, `LOG_LPR`,
+`LOG_NEWS`, `LOG_UUCP`, `LOG_LOCAL0`, `LOG_LOCAL1`, `LOG_LOCAL2`, `LOG_LOCAL3`, `LOG_LOCAL4`, `LOG_LOCAL5`,
+`LOG_LOCAL6`, `LOG_LOCAL7`
 
 Examples:
 
