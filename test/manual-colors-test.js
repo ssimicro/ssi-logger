@@ -3,13 +3,13 @@
 var log = require('../');
 
 function genLogs(color, timestamp) {
-	var logger = log.consoleTransport(color, timestamp);
-	process.on('log', logger);
-	var levels = [ 'EMERG', 'ALERT', 'CRIT', 'ERR', 'WARNING', 'NOTICE', 'INFO', 'DEBUG' ];
-	for (var i = 0; i < levels.length; i++) {
-		log(levels[i], "The quick brown fox jumps over the lazy dog");
-	}
-	process.removeListener('log', logger);
+    var logger = log.consoleTransport(color, timestamp);
+    process.on('log', logger);
+    var levels = [ 'EMERG', 'ALERT', 'CRIT', 'ERR', 'WARNING', 'NOTICE', 'INFO', 'DEBUG' ];
+    for (var i = 0; i < levels.length; i++) {
+        log(levels[i], "The quick brown fox jumps over the lazy dog");
+    }
+    process.removeListener('log', logger);
 }
 
 

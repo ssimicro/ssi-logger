@@ -11,6 +11,7 @@ Simplified logging for node.js modules.
 * log messages can go to 0, 1, or many destinations (/dev/null, syslog, file, rabbitmq, e-mail, XMPP, etc).
 * a log destination can be turned on or off at runtime.
 * logged objects are automatically formatted into key=value strings (great for sending messages to [splunk](http://www.splunk.com/)).
+* certain fields can be censored to avoid accidentally logging sensitive information.
 * formatted log messages are returned by SSi Logger to the caller.
 * it accepts multiple arguments and printf-style formats just like `console.log`
 
@@ -59,12 +60,28 @@ Non-string message arguments:
     log('INFO', 'IP Whitelist Accept', { remote_ip: remote_ip });
     // emits ---> { level: 'INFO', message: 'IP Whitelist Accept remote_ip=123.123.123.123' }
 
+With censorship:
+
+   var log = require('ssi-logger');
+
+    log.censor([
+        'card_number', // can contain property names
+        /pass(word)?/  // and/or regular expressions
+    ]);
+
+    process.on('log', log.syslogTransport('LOG_LOCAL5', 'INFO'));
+    process.on('log', log.consoleTransport());
+
+    log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
+    // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=XXXXXXXXXXXXXXXX' }
+
+
 Return value:
 
     if (err) {
-      var human_readble_error_string = log('ERROR', err);
-      displayError(human_readble_error_string);
-      callback(err);
+        var human_readble_error_string = log('ERROR', err);
+        displayError(human_readble_error_string);
+        callback(err);
     }
 
 Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG`
@@ -188,6 +205,39 @@ At present, the log events are objects that have `level` and `message` propertie
         log('EMERG', '/dev/lp0 on fire!');
     }
 
+## Censorship
+
+Any number of fields may be censored. This is useful when logging request objects to avoid accidentally logging
+a credit card number, password, or other sensitive information.
+
+### API
+
+#### log.censor(arr)
+
+Sets the list of fields to censor from all log messages. The parameter `arr` is an array which may contain any combination of strings and regular expression objects. The strings and regular expressions are used to match against the log message. To turn off censorship, call this function with an empty array `[]`.
+
+Example:
+
+    // set the list
+    log.censor([ 'card_number', /pass(word)?/ ]);
+
+    log('INFO', 'first_name=John last_name=Doe card_number=1234123412341234 password=pizza');
+    log('INFO', 'first_name=%s last_name=%s card_number=%s password=%s', first_name_var, last_name_var, card_number_var, password_var);
+    log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234', password: 'pizza' });
+
+    // each one above emits the same thing -->
+    // { level: 'INFO', message: 'first_name=John last_name=Doe card_number=XXXXXXXXXXXXXXXX password=XXXXX' }
+
+#### log.censor()
+
+Returns a list of fields that are presently being censored from all log messages.
+
+Example:
+
+    // get the list of censored fields
+    console.log(log.censor());
+    // prints --> [ 'card_number', /pass(word)?/ ]
+
 ## Testing
 
 There is an automated test suite:
@@ -203,24 +253,4 @@ As well as several manual tests:
 
 ## License
 
-```
-Copyright (C) 2015 SSi Micro, Ltd. and other contributors.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-```
+See [LICENSE.md](https://github.com/ssimicro/ssi-logger/blob/master/LICENCE.md).
