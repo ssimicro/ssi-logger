@@ -18,7 +18,7 @@ Simplified logging for node.js modules.
 ## Theory of Operation
 
 The module provides a `log(level, message, ...)` function which accepts the log level (`INFO`, `NOTICE`, `DEBUG`, etc)
-and a log message. The message argument(s) work just like [console.log()](http://nodejs.org/api/stdio.html#stdio_console_log_data),
+and a log message. The message argument(s) work just like [console.log()](https://nodejs.org/api/console.html#console_console_log_data),
 supporting a variable number of arguments plus formatting.
 
 When invoked, the logger will format the log message using [logformat](https://github.com/tcort/logformat)
