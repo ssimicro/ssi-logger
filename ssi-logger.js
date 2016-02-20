@@ -44,6 +44,7 @@ module.exports = function SSiLogger(level, message) {
 
 // Various transports...
 module.exports.consoleTransport = require('./lib/transports/console');
+module.exports.streamTransport = require('./lib/transports/stream');
 module.exports.syslogTransport = require('./lib/transports/syslog');
 
 // Public API

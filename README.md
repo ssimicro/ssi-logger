@@ -84,6 +84,22 @@ Return value:
         callback(err);
     }
 
+Logging to a file with daily log rotation:
+
+    var FileStreamRotator = require('file-stream-rotator');
+    var log = require('ssi-logger');
+    var path = require('path');
+
+    var logfile = FileStreamRotator.getStream({
+        filename: path.join(__dirname, 'application-%DATE%.log'),
+        frequency: 'daily',
+        verbose: false,
+        date_format: 'YYYY-MM-DD'
+    });
+    process.on('log', log.streamTransport(logfile));
+
+    log('INFO', 'This message gets logged to a file');
+
 Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG`
 
 ## Transports
@@ -115,6 +131,16 @@ parameter is a boolean to enable or disable color coded log messages. When not s
 parameter causes an ISO 8601 format timestamp to be prepended to all console messages.
 
     process.on('log', log.consoleTransport(true, true));
+
+### lib/transports/stream ###
+
+`streamTransport(stream, color, timestamp` writes messages to the `stream`, one per line, in the form
+"[level] message". The `color` parameter is a boolean to enable or disable color coded log messages.
+When not supplied, `color` defaults to `false`. Colors can also be disabled at runtime with the
+`--no-color` command line option.  The `timestamp` parameter causes an ISO 8601 format timestamp
+to be prepended to all console messages. When not supplied, `timestamp` defaults to `true`.
+
+    process.on('log', log.streamTransport(logfile));
 
 ### lib/transports/syslog ###
 
