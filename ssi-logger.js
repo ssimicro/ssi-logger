@@ -57,3 +57,10 @@ module.exports.censor = function censor(list) {
 
     return module.exports.censorList;
 };
+
+module.exports.defaults = function defaults() {
+    var curried = Array.from(arguments);
+    return function curriedDefaults() {
+        return module.exports.apply(curried, _.union(Array.from(arguments), curried));
+    };
+};

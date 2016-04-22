@@ -238,6 +238,19 @@ a credit card number, password, or other sensitive information.
 
 ### API
 
+#### log.defaults(...)
+
+Returns a new curried `log()` function with baked in parameters that are included in all log messages.
+
+Example:
+
+    var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+    mylog('INFO', 'I love golf!');
+
+    // emits --> { level: 'INFO', message: 'I love golf! request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar' }
+
+
 #### log.censor(arr)
 
 Sets the list of fields to censor from all log messages. The parameter `arr` is an array which may contain any combination of strings and regular expression objects. The strings and regular expressions are used to match against the log message. To turn off censorship, call this function with an empty array `[]`.

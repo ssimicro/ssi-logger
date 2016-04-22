@@ -25,13 +25,46 @@ describe('ssi-logger', function() {
         it('should emit log events', function (done) {
 
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(message);
-                process.removeListener('log', testf);
                 done();
             });
 
             log(level, message);
+        });
+    });
+
+    describe('defaults', function () {
+
+        it('should emit log events with defaults', function (done) {
+
+            var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+            process.on('log', function testfx(obj) {
+                process.removeListener('log', testfx);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message + ' request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar');
+                done();
+            });
+
+            mylog(level, message);
+        });
+
+        it('should work with an object reference', function (done) {
+
+            var meta = {};
+            var mylog = log.defaults(meta);
+
+            process.on('log', function testfx(obj) {
+                process.removeListener('log', testfx);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message + ' foo=bar');
+                done();
+            });
+
+            meta.foo = 'bar';
+            mylog(level, message);
         });
     });
 
@@ -40,9 +73,9 @@ describe('ssi-logger', function() {
         it('should concatinate multiple message arguments', function (done) {
 
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(message);
-                process.removeListener('log', testf);
                 done();
             });
 
@@ -52,9 +85,9 @@ describe('ssi-logger', function() {
         it('should format complex objects', function (done) {
  
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be('count=5 price=12.34 greeting="Hello, World" shortGreeting=Hi');
-                process.removeListener('log', testf);
                 done();
             });
 
@@ -64,9 +97,9 @@ describe('ssi-logger', function() {
         it('should format arrays', function (done) {
  
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(arr_logformat);
-                process.removeListener('log', testf);
                 done();
             });
 
@@ -75,9 +108,9 @@ describe('ssi-logger', function() {
 
         it('should support varargs like console.log([data], [...])', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(ip_expect);
-                process.removeListener('log', testf);
                 done();
             });
 
@@ -86,9 +119,9 @@ describe('ssi-logger', function() {
 
         it('should support printf() style formatting of strings like console.log([data], [...])', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(ip_expect);
-                process.removeListener('log', testf);
                 done();
             });
 
@@ -97,9 +130,9 @@ describe('ssi-logger', function() {
 
         it('should support printf() style formatting of numbers like console.log([data], [...])', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(ip_expect);
-                process.removeListener('log', testf);
                 done();
             });
 
@@ -112,9 +145,9 @@ describe('ssi-logger', function() {
 
         it('should support censoring sensitive fields in an object', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
-                process.removeListener('log', testf);
                 log.censor([]);
                 done();
             });
@@ -130,9 +163,9 @@ describe('ssi-logger', function() {
 
         it('should support censoring sensitive fields in a formatted string', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
-                process.removeListener('log', testf);
                 log.censor([]);
                 done();
             });
@@ -144,9 +177,9 @@ describe('ssi-logger', function() {
 
         it('should support censoring sensitive fields in a plain string', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
-                process.removeListener('log', testf);
                 log.censor([]);
                 done();
             });
@@ -158,9 +191,9 @@ describe('ssi-logger', function() {
 
         it('should support censoring sensitive fields with regular expressions for field names', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
-                process.removeListener('log', testf);
                 log.censor([]);
                 done();
             });
@@ -172,9 +205,9 @@ describe('ssi-logger', function() {
 
         it('should support censoring sensitive fields based on key names (e.g. "ip") and deep key names (e.g. "client.agent").', function (done) {
             process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be('date=XXXXXXXXXX client.agent=XXXXXXX client.ip=XXXXXXXXX server.ip=XXXXXXXXXXXXX');
-                process.removeListener('log', testf);
                 log.censor([]);
                 done();
             });
