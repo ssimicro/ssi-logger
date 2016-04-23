@@ -59,8 +59,8 @@ module.exports.censor = function censor(list) {
 };
 
 module.exports.defaults = function defaults() {
-    var curried = Array.from(arguments);
+    var curried = Array.prototype.slice.call(arguments);
     return function curriedDefaults() {
-        return module.exports.apply(curried, _.union(Array.from(arguments), curried));
+        return module.exports.apply(curried, _.union(Array.prototype.slice.call(arguments), curried));
     };
 };
