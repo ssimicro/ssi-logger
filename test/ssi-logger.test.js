@@ -161,6 +161,22 @@ describe('ssi-logger', function() {
             });
         });
 
+        it('should support censoring strings with whitespace', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be('Authorization=XXXXXXXXXXXXXXXXX Authorization=XXXXXXXXXXXXXXXXX Authorization=XXXXXXXXXXXXXXXXX');
+                log.censor([]);
+                done();
+            });
+
+            log.censor([ 'Authorization' ]);
+
+            log(level, 'Authorization="passcode 123456" Authorization="%s"', 'passcode 123456', {
+		Authorization: 'passcode 123456'
+            });
+        });
+
         it('should support censoring sensitive fields in a formatted string', function (done) {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
