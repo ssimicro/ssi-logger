@@ -62,7 +62,7 @@ Non-string message arguments:
 
 With censorship:
 
-   var log = require('ssi-logger');
+    var log = require('ssi-logger');
 
     log.censor([
         'card_number', // can contain property names
