@@ -73,7 +73,7 @@ With censorship:
     process.on('log', log.consoleTransport());
 
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
-    // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=XXXXXXXXXXXXXXXX' }
+    // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted]' }
 
 
 Return value:
@@ -265,7 +265,7 @@ Example:
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234', password: 'pizza' });
 
     // each one above emits the same thing -->
-    // { level: 'INFO', message: 'first_name=John last_name=Doe card_number=XXXXXXXXXXXXXXXX password=XXXXX' }
+    // { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted] password=[redacted]' }
 
 #### log.censor()
 

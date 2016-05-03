@@ -30,7 +30,7 @@ module.exports = function SSiLogger(level, message) {
 
         //replace each character of the value with an 'X' to censor it.
         message = message.replace(re, function (match, key) {
-            return key + '=' + new Array(arguments[Math.min(2 + offset, arguments.length - 1)].length + 1).join("X");
+            return key + '=[redacted]';
         });
     });
 

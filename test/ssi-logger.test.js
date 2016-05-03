@@ -147,7 +147,7 @@ describe('ssi-logger', function() {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
+                expect(obj.message).to.be('cc=[redacted] name=[redacted] rank=7');
                 log.censor([]);
                 done();
             });
@@ -165,7 +165,7 @@ describe('ssi-logger', function() {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('Authorization=XXXXXXXXXXXXXXXXX Authorization=XXXXXXXXXXXXXXXXX Authorization=XXXXXXXXXXXXXXXXX headers.Authorization=XXXXXXXXXXXXXXXXX');
+                expect(obj.message).to.be('Authorization=[redacted] Authorization=[redacted] Authorization=[redacted] headers.Authorization=[redacted]');
                 log.censor([]);
                 done();
             });
@@ -181,7 +181,7 @@ describe('ssi-logger', function() {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
+                expect(obj.message).to.be('cc=[redacted] name=[redacted] rank=7');
                 log.censor([]);
                 done();
             });
@@ -195,7 +195,7 @@ describe('ssi-logger', function() {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
+                expect(obj.message).to.be('cc=[redacted] name=[redacted] rank=7');
                 log.censor([]);
                 done();
             });
@@ -209,7 +209,7 @@ describe('ssi-logger', function() {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('cc=XXXXXXXXXXXXXXXX name=XXXXXXXXXXXXX rank=7');
+                expect(obj.message).to.be('cc=[redacted] name=[redacted] rank=7');
                 log.censor([]);
                 done();
             });
@@ -223,7 +223,7 @@ describe('ssi-logger', function() {
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('date=XXXXXXXXXX client.agent=XXXXXXX client.ip=XXXXXXXXX server.ip=XXXXXXXXXXXXX');
+                expect(obj.message).to.be('date=[redacted] client.agent=[redacted] client.ip=[redacted] server.ip=[redacted]');
                 log.censor([]);
                 done();
             });
@@ -239,7 +239,7 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 expect(obj.level).to.be(level);
-                expect(obj.message).to.be('first_name=John last_name=Doe card_number=XXXXXXXXXXXXXXXX password=XXXXX');
+                expect(obj.message).to.be('first_name=John last_name=Doe card_number=[redacted] password=[redacted]');
                 if (--count === 0) {
                     process.removeListener('log', testf);
                     log.censor([]);
