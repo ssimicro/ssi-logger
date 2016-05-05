@@ -66,6 +66,26 @@ describe('ssi-logger', function() {
             meta.foo = 'bar';
             mylog(level, message);
         });
+
+        it('should support multiple levels of nesting', function (done) {
+
+            var level0 = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
+            var level1 = level0.defaults('foobar');
+            var level2 = level1.defaults({ cheese: 'cake' });
+
+            expect(level2).to.have.property('consoleTransport');
+            expect(level2.consoleTransport).to.be.a('function');
+
+            process.on('log', function testfx(obj) {
+                process.removeListener('log', testfx);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message + ' request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar cheese=cake');
+                done();
+            });
+
+            level2(level, message);
+        });
+
     });
 
     describe('formatting', function () {

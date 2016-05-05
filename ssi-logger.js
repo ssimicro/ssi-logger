@@ -5,7 +5,7 @@ var _ = require('lodash');
 var util = require('util');
 var logformat = require('logformat');
 
-module.exports = function SSiLogger(level, message) {
+function log(level, message) {
 
     if (arguments.length > 1) {
         message = util.format.apply(null, _.map(_.rest(arguments), logformat));
@@ -40,15 +40,9 @@ module.exports = function SSiLogger(level, message) {
     });
 
     return message;
-};
+}
 
-// Various transports...
-module.exports.consoleTransport = require('./lib/transports/console');
-module.exports.streamTransport = require('./lib/transports/stream');
-module.exports.syslogTransport = require('./lib/transports/syslog');
-
-// Public API
-module.exports.censor = function censor(list) {
+function censor(list) {
     module.exports.censorList = module.exports.censorList || [];
 
     if (Array.isArray(list)) {
@@ -56,11 +50,27 @@ module.exports.censor = function censor(list) {
     }
 
     return module.exports.censorList;
-};
+}
 
-module.exports.defaults = function defaults() {
-    var curried = Array.prototype.slice.call(arguments);
-    return function curriedDefaults() {
-        return module.exports.apply(curried, _.union(Array.prototype.slice.call(arguments), curried));
+function defaults() {
+    var defaultMessages = Array.prototype.slice.call(arguments);
+    var defaultLog = function (level, message) {
+        return module.exports.apply(null, _.union(Array.prototype.slice.call(arguments), defaultMessages));
     };
-};
+    _.extend(defaultLog, module.exports);
+    defaultLog.defaults = function () {
+        return defaults.apply(null, _.union(defaultMessages, Array.prototype.slice.call(arguments)));
+    };
+    return defaultLog;
+}
+
+// Public API
+module.exports = log;
+module.exports.censor = censor;
+module.exports.defaults = defaults;
+
+// Various transports...
+module.exports.consoleTransport = require('./lib/transports/console');
+module.exports.streamTransport = require('./lib/transports/stream');
+module.exports.syslogTransport = require('./lib/transports/syslog');
+
