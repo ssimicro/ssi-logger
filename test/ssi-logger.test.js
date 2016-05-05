@@ -35,6 +35,54 @@ describe('ssi-logger', function() {
         });
     });
 
+    describe('convience', function () {
+
+        it('should provide log.info()', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be('INFO');
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log.info(message);
+        });
+
+        it('should provide log.debug()', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be('DEBUG');
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log.debug(message);
+        });
+
+        it('should provide log.warn()', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be('WARN');
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log.warn(message);
+        });
+
+        it('should provide log.error()', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be('ERROR');
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log.error(message);
+        });
+
+    });
+
     describe('defaults', function () {
 
         it('should emit log events with defaults', function (done) {

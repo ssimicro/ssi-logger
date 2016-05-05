@@ -69,6 +69,12 @@ module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
 
+// Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
+module.exports.log = function () { module.exports.apply(null, Array.prototype.slice.call(arguments)); };
+_.each(['EMERG', 'ALERT', 'CRIT', 'ERR', 'ERROR', 'WARNING', 'WARN', 'NOTICE', 'INFO', 'VERBOSE', 'DEBUG', 'SILLY'], function (level) {
+    module.exports[level.toLowerCase()] = function () { module.exports.apply(null, _.union([level], Array.prototype.slice.call(arguments))); };
+});
+
 // Various transports...
 module.exports.consoleTransport = require('./lib/transports/console');
 module.exports.streamTransport = require('./lib/transports/stream');

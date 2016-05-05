@@ -15,6 +15,7 @@ Simplified logging for node.js modules.
 * formatted log messages are returned by SSi Logger to the caller.
 * it accepts multiple arguments and printf-style formats just like `console.log`.
 * defaults can be supplied that are included in every message.
+* your choice of API: `log(level, message, ...)` or `log.level(message, ...)`
 
 ## Theory of Operation
 
@@ -120,6 +121,14 @@ Setting defaults that are included in every log message:
     });
 
     app.listen(3000);
+
+Convience methods:
+
+    log.info('Hello, World!');
+    // emits ---> { level: 'INFO', message: 'Hello, World!' }
+
+    log.alert('/dev/lp0 on fire!');
+    // emits ---> { level: 'ALERT', message: '/dev/lp0 on fire!' }
 
 Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG`
 
