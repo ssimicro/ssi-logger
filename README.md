@@ -13,7 +13,8 @@ Simplified logging for node.js modules.
 * logged objects are automatically formatted into key=value strings (great for sending messages to [splunk](http://www.splunk.com/)).
 * certain fields can be censored to avoid accidentally logging sensitive information.
 * formatted log messages are returned by SSi Logger to the caller.
-* it accepts multiple arguments and printf-style formats just like `console.log`
+* it accepts multiple arguments and printf-style formats just like `console.log`.
+* defaults can be supplied that are included in every message.
 
 ## Theory of Operation
 
@@ -99,6 +100,26 @@ Logging to a file with daily log rotation:
     process.on('log', log.streamTransport(logfile));
 
     log('INFO', 'This message gets logged to a file');
+
+Setting defaults that are included in every log message:
+
+    var app = express();
+
+    app.use(function loggingConfig(req, res, next) {
+        req.log = log.defaults({
+            request_id: uuid.v1(),
+            client_ip: req.ip
+        });
+    });
+
+    app.get('/users/:uid', function getRoot(req, res) {
+        req.log('INFO', 'User Get', req.params);
+        // emits ---> { level: 'INFO', message: 'User Get uid=thomasc request_id=e3aec5a8-12af-11e6-a148-3e1d05defe78 client_ip=127.0.0.1' }
+
+        res.render('user', db.getUser(req.params.uid));
+    });
+
+    app.listen(3000);
 
 Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG`
 
