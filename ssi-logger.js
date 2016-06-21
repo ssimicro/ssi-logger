@@ -8,7 +8,7 @@ var logformat = require('logformat');
 function log(level, message) {
 
     if (arguments.length > 1) {
-        message = util.format.apply(null, _.map(_.rest(arguments), logformat));
+        message = util.format.apply(null, _.map(_.tail(arguments), logformat));
     }
 
     // perform censorship
@@ -71,7 +71,7 @@ module.exports.defaults = defaults;
 
 // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
 module.exports.log = function () { module.exports.apply(null, Array.prototype.slice.call(arguments)); };
-_.each(['EMERG', 'ALERT', 'CRIT', 'ERR', 'ERROR', 'WARNING', 'WARN', 'NOTICE', 'INFO', 'VERBOSE', 'DEBUG', 'SILLY'], function (level) {
+_.forEach(['EMERG', 'ALERT', 'CRIT', 'ERR', 'ERROR', 'WARNING', 'WARN', 'NOTICE', 'INFO', 'VERBOSE', 'DEBUG', 'SILLY'], function (level) {
     module.exports[level.toLowerCase()] = function () { module.exports.apply(null, _.union([level], Array.prototype.slice.call(arguments))); };
 });
 
