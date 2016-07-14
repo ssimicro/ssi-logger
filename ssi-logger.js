@@ -61,6 +61,7 @@ function defaults() {
     defaultLog.defaults = function () {
         return defaults.apply(null, _.union(defaultMessages, Array.prototype.slice.call(arguments)));
     };
+    addConvenienceFunctions(defaultLog);
     return defaultLog;
 }
 
@@ -69,11 +70,15 @@ module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
 
-// Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
-module.exports.log = function () { module.exports.apply(null, Array.prototype.slice.call(arguments)); };
-_.forEach(['EMERG', 'ALERT', 'CRIT', 'ERR', 'ERROR', 'WARNING', 'WARN', 'NOTICE', 'INFO', 'VERBOSE', 'DEBUG', 'SILLY'], function (level) {
-    module.exports[level.toLowerCase()] = function () { module.exports.apply(null, _.union([level], Array.prototype.slice.call(arguments))); };
-});
+function addConvenienceFunctions(logger) {
+    // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
+    logger.log = function () { logger.apply(null, Array.prototype.slice.call(arguments)); };
+    _.forEach(['EMERG', 'ALERT', 'CRIT', 'ERR', 'ERROR', 'WARNING', 'WARN', 'NOTICE', 'INFO', 'VERBOSE', 'DEBUG', 'SILLY'], function (level) {
+        logger[level.toLowerCase()] = function () { logger.apply(null, _.union([level], Array.prototype.slice.call(arguments))); };
+    });
+}
+
+addConvenienceFunctions(module.exports);
 
 // Various transports...
 module.exports.consoleTransport = require('./lib/transports/console');

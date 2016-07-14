@@ -99,6 +99,20 @@ describe('ssi-logger', function() {
             mylog(level, message);
         });
 
+        it('should emit log events with defaults using the .level() interface', function (done) {
+
+            var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+            process.on('log', function testfx(obj) {
+                process.removeListener('log', testfx);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message + ' request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar');
+                done();
+            });
+
+            mylog[level.toLowerCase()](message);
+        });
+
         it('should work with an object reference', function (done) {
 
             var meta = {};
