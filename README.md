@@ -357,7 +357,6 @@ Examples:
 | `DEBUG=processor`            | emit only messages in the 'processor' namespace. |
 | `DEBUG="receiver processor"` | emit only messages in the 'receiver' and 'processor' namespaces. |
 | `DEBUG=-*`                   | emit no messages. |
-| ------------- | ------------- |
 
 ## Testing
 
