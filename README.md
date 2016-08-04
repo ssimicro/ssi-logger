@@ -350,13 +350,13 @@ The syntax for the `DEBUG` environment variable value is as follows:
 
 Examples:
 
-|------------------------------|------------------------|
+| ------------- | ------------- |
 | `DEBUG=*`                    | emit all log messages. |
 | `DEBUG=*,-processor`         | emit all messages except those in the 'processor' namespace. |
 | `DEBUG=processor`            | emit only messages in the 'processor' namespace. |
 | `DEBUG="receiver processor"` | emit only messages in the 'receiver' and 'processor' namespaces. |
 | `DEBUG=-*`                   | emit no messages. |
-|------------------------------|------------------------|
+| ------------- | ------------- |
 
 ## Testing
 
