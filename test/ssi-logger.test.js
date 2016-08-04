@@ -5,6 +5,7 @@ var expect = require('expect.js');
 var log = require('../');
 
 describe('ssi-logger', function() {
+    var namespace = 'deepspace';
     var level = 'INFO';
     var message = 'Test Message';
     var complex = {
@@ -32,6 +33,56 @@ describe('ssi-logger', function() {
             });
 
             log(level, message);
+        });
+    });
+
+    describe('namespace', function () {
+    
+        it('should default to no namespace', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.namespace).to.be(undefined);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log(level, message);
+        });
+
+        it('should be overwritable', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.namespace).to.be(namespace);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            var myLog = log(namespace);
+            myLog(level, message);
+        });
+
+        it('should allow two namespaces at once', function (done) {
+            var expectedNamespaces = ['A','B'];
+            var seenNamespaces = [];
+            process.on('log', function testf(obj) {
+                seenNamespaces.push(obj.namespace);
+                if (seenNamespaces.length === 2) {
+                    process.removeListener('log', testf);
+                }
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message);
+                if (seenNamespaces.length === 2) {
+                    expect(seenNamespaces).to.be.eql(expectedNamespaces);
+                    done();
+                }
+            });
+
+            var logA = log('A');
+            var logB = log('B');
+            logA(level, message);
+            logB(level, message);
         });
     });
 

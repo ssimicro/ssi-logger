@@ -15,6 +15,7 @@ Simplified logging for node.js modules.
 * formatted log messages are returned by SSi Logger to the caller.
 * it accepts multiple arguments and printf-style formats just like `console.log`.
 * defaults can be supplied that are included in every message.
+* logging namespaces may be used to filter log messages, similar to [debug](https://github.com/visionmedia/debug).
 * your choice of API: `log(level, message, ...)` or `log.level(message, ...)`
 
 ## Theory of Operation
@@ -121,6 +122,26 @@ Setting defaults that are included in every log message:
     });
 
     app.listen(3000);
+
+Namespaces:
+
+    var recvLog = require('ssi-logger')('receiver');
+    var procLog = require('ssi-logger')('processor');
+
+    recvLog('INFO', 'Received Something');
+    // emits ---> { namespace: 'receiver', level: 'INFO', message: 'Received Something' }
+    // consoleTransport prints "[receiver] [INFO] Received Something"
+
+    procLog('INFO', 'Processed Something');
+    // emits ---> { namespace: 'processor', level: 'INFO', message: 'Processed Something' }
+    // consoleTransport prints "[processor] [INFO] Processed Something"
+
+    // which namespaces emit messages can be controlled via the DEBUG environment variable...
+    // DEBUG=*                    <-- emit all log messages. Note that glob operators may be used.
+    // DEBUG=*,-processor         <-- emit all messages except those in the 'processor' namespace. Note that '-' turns off a namespace.
+    // DEBUG=processor            <-- emit only messages in the 'processor' namespace.
+    // DEBUG="receiver processor" <-- emit only messages in the 'receiver' and 'processor' namespaces. Note that the separator may be whitespace or a comma.
+    // DEBUG=-*                   <-- emit no messages.
 
 Convience methods:
 
@@ -307,6 +328,38 @@ Example:
     console.log(log.censor());
     // prints --> [ 'card_number', /pass(word)?/ ]
 
+## Namespaces
+
+Namespaces allow one to segregate different sets of log messages. A logger instance may be given
+a namespace. The `DEBUG` environment variable may be given a comma or space separated list of 
+namespaces which directs `ssi-logger` to either emit or suppress log messages from matching
+namespaces.
+
+Setting a namespace may be done by calling the `log` function with one argument (the namespace name):
+
+    var log = require('ssi-logger');
+    var billingLog = log('billing');
+
+    // or more concisely...
+    // var billingLog = require('ssi-logger')('billing');
+
+    // use the namespaced logger as you normally would...
+    billingLog.debug('Generated Invoice #%d Successfully', invoice_id);
+
+The syntax for the `DEBUG` environment variable value is as follows:
+
+* ',' and whitespace separate namespaces
+* glob matching, brace expansion, extended glob matching, and "globstar" `**` matching is supported.
+* `-` at the beginning of a namespace causes messages with that namespace to be suppressed. (e.g. `-foo` turns off messages from namespace `foo`).
+
+Examples:
+
+| `DEBUG=*`                    | emit all log messages. |
+| `DEBUG=*,-processor`         | emit all messages except those in the 'processor' namespace. |
+| `DEBUG=processor`            | emit only messages in the 'processor' namespace. |
+| `DEBUG="receiver processor"` | emit only messages in the 'receiver' and 'processor' namespaces. |
+| `DEBUG=-*`                   | emit no messages. |
+
 ## Testing
 
 There is an automated test suite:
@@ -318,7 +371,14 @@ As well as several manual tests:
     cd test
     node manual-colors-test.js
     node manual-colors-test.js --no-color
+    node manual-namespace-test.js
     node manual-test.js && tail /var/log/local5.log
+
+## Inspiration
+
+* [console](https://nodejs.org/api/console.html)
+* [debug](https://github.com/visionmedia/debug)
+* [winston](https://github.com/winstonjs/winston)
 
 ## License
 
