@@ -350,6 +350,7 @@ The syntax for the `DEBUG` environment variable value is as follows:
 
 Examples:
 
+| env | description |
 | ------------- | ------------- |
 | `DEBUG=*`                    | emit all log messages. |
 | `DEBUG=*,-processor`         | emit all messages except those in the 'processor' namespace. |
