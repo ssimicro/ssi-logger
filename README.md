@@ -344,7 +344,7 @@ Setting a namespace may be done by calling the `log` function with one argument 
 
 The syntax for the `DEBUG` environment variable value is as follows:
 
-* ',' and whitespace separate namespaces
+* `,` and whitespace separate namespaces.
 * glob matching, brace expansion, extended glob matching, and "globstar" `**` matching is supported.
 * `-` at the beginning of a namespace causes messages with that namespace to be suppressed. (e.g. `-foo` turns off messages from namespace `foo`).
 
