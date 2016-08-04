@@ -136,12 +136,8 @@ Namespaces:
     // emits ---> { namespace: 'processor', level: 'INFO', message: 'Processed Something' }
     // consoleTransport prints "[processor] [INFO] Processed Something"
 
-    // which namespaces emit messages can be controlled via the DEBUG environment variable...
-    // DEBUG=*                    <-- emit all log messages. Note that glob operators may be used.
-    // DEBUG=*,-processor         <-- emit all messages except those in the 'processor' namespace. Note that '-' turns off a namespace.
-    // DEBUG=processor            <-- emit only messages in the 'processor' namespace.
-    // DEBUG="receiver processor" <-- emit only messages in the 'receiver' and 'processor' namespaces. Note that the separator may be whitespace or a comma.
-    // DEBUG=-*                   <-- emit no messages.
+    // which namespaces emit messages can be controlled via the DEBUG environment variable.
+    // See the relevant README.md section for details
 
 Convience methods:
 
@@ -354,11 +350,13 @@ The syntax for the `DEBUG` environment variable value is as follows:
 
 Examples:
 
+|------------------------------|------------------------|
 | `DEBUG=*`                    | emit all log messages. |
 | `DEBUG=*,-processor`         | emit all messages except those in the 'processor' namespace. |
 | `DEBUG=processor`            | emit only messages in the 'processor' namespace. |
 | `DEBUG="receiver processor"` | emit only messages in the 'receiver' and 'processor' namespaces. |
 | `DEBUG=-*`                   | emit no messages. |
+|------------------------------|------------------------|
 
 ## Testing
 
