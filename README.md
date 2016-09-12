@@ -155,12 +155,13 @@ Here are the available transports.
 
 ### lib/transports/console
 
-`consoleTransport(color, timestamp)` logs all messages to the console in the form "[level] message". The `color`
+`consoleTransport(color, timestamp, stderr)` logs all messages to the console in the form "[level] message". The `color`
 parameter is a boolean to enable or disable color coded log messages. When not supplied, `color` defaults to
 `true`. Colors can also be disabled at runtime with the `--no-color` command line option. The `timestamp`
-parameter causes an ISO 8601 format timestamp to be prepended to all console messages.
+parameter causes an ISO 8601 format timestamp to be prepended to all console messages. If the `stderr` parameter is
+`true`, then the logs messages are directed to process.stderr instead.
 
-    process.on('log', log.consoleTransport(true, true));
+    process.on('log', log.consoleTransport(true, true, true));
 
 ### lib/transports/stream ###
 
