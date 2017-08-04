@@ -33,6 +33,22 @@ describe('ssi-logger', function() {
 
             log(level, message);
         });
+
+        it('should emit log events with data[] containing log args', function (done) {
+
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message+' hello=world 1234');
+                expect(obj.data).to.be.an(Array);
+                expect(obj.data[0]).to.be(message);
+                expect(obj.data[1]).to.eql({hello: "world"});
+                expect(obj.data[2]).to.be(1234);
+               done();
+            });
+
+            log(level, message, {hello: "world"}, 1234);
+        });
     });
 
     describe('convience', function () {
@@ -99,6 +115,26 @@ describe('ssi-logger', function() {
             mylog(level, message);
         });
 
+        it('should emit log events with defaults appended to data[]', function (done) {
+
+            var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message+' hello=world 1234 request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar');
+                expect(obj.data).to.be.an(Array);
+                expect(obj.data[0]).to.be(message);
+                expect(obj.data[1]).to.eql({hello: "world"});
+                expect(obj.data[2]).to.be(1234);
+                expect(obj.data[3]).to.eql({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
+                expect(obj.data[4]).to.be('foobar');
+                done();
+            });
+
+            mylog(level, message, {hello: "world"}, 1234);
+        });
+
         it('should emit log events with defaults using the .level() interface', function (done) {
 
             var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
@@ -146,6 +182,32 @@ describe('ssi-logger', function() {
             });
 
             level2(level, message);
+        });
+
+        it('should support multiple levels of nesting appended to data[]', function (done) {
+
+            var level0 = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
+            var level1 = level0.defaults('foobar');
+            var level2 = level1.defaults({ cheese: 'cake' });
+
+            expect(level2).to.have.property('consoleTransport');
+            expect(level2.consoleTransport).to.be.a('function');
+
+            process.on('log', function testfx(obj) {
+                process.removeListener('log', testfx);
+                expect(obj.level).to.be(level);
+                expect(obj.message).to.be(message+' hello=world 1234 request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar cheese=cake');
+                expect(obj.data).to.be.an(Array);
+                expect(obj.data[0]).to.be(message);
+                expect(obj.data[1]).to.eql({hello: "world"});
+                expect(obj.data[2]).to.be(1234);
+                expect(obj.data[3]).to.eql({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
+                expect(obj.data[4]).to.be('foobar');
+                expect(obj.data[5]).to.eql({cheese: "cake"});
+                done();
+            });
+
+            level2(level, message, {hello: "world"}, 1234);
         });
 
     });
@@ -255,7 +317,7 @@ describe('ssi-logger', function() {
             log.censor([ 'Authorization' ]);
 
             log(level, 'Authorization="passcode 123456" Authorization="%s"', 'passcode 123456', {
-		Authorization: 'passcode 123456'
+                Authorization: 'passcode 123456'
             }, { headers: { Authorization: 'passcode 123456' } });
         });
 

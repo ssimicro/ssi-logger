@@ -36,7 +36,8 @@ function log(level, message) {
 
     process.emit('log', {
         level: level,
-        message: message
+        message: message,
+        data: arguments.length > 1 ? _.tail(arguments) : []
     });
 
     return message;
