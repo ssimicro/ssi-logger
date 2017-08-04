@@ -5,13 +5,37 @@ var _ = require('lodash');
 var util = require('util');
 var logformat = require('logformat');
 
+function __censorObject(obj, patterns) {
+    const objects_seen = [];
+    return _.cloneDeepWith(obj, function (value, key, obj, stack) {
+        if (_.isObjectLike(value)) {
+             if (objects_seen.indexOf(value) !== -1) {
+                return "[circular]";
+            }
+            objects_seen.push(value);
+        } else {
+            let matched = false;
+            _.forEach(patterns, function (pat) {
+                matched = (pat instanceof RegExp && pat.test(key)) || pat === key;
+                return !matched;
+            });
+            if (matched) {
+                return "[redacted]";
+            }
+        }
+        return undefined;
+    });
+}
+
 function log(level, message) {
+    // Censor objects.
+    const args = _.map(arguments.length > 1 ? _.tail(arguments) : [], function (arg) {
+        return __censorObject(arg, module.exports.censor());
+    });
 
-    if (arguments.length > 1) {
-        message = util.format.apply(null, _.map(_.tail(arguments), logformat));
-    }
+    message = util.format.apply(null, _.map(args, logformat));
 
-    // perform censorship
+    // Censor any key=value pairs appearing in the formatted message.
     module.exports.censor().forEach(function (key) {
         var safeKey; // string that can be safely inserted into a regex.
 
@@ -37,7 +61,7 @@ function log(level, message) {
     process.emit('log', {
         level: level,
         message: message,
-        data: arguments.length > 1 ? _.tail(arguments) : []
+        data: args
     });
 
     return message;
@@ -70,6 +94,11 @@ function defaults() {
 module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
+
+if (process.env.NODE_ENV !== 'production') {
+    // Internal unit testing.
+    module.exports.__censorObject = __censorObject;
+}
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement

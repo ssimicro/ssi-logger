@@ -285,6 +285,61 @@ describe('ssi-logger', function() {
 
     });
         
+    describe('__censorObject', function () {
+        it('should clone the object', function () {
+            const obj = {
+                hello: "world",
+                child: {
+                    world: "peace",
+                    child: {
+                        bang: "war",
+                        child: null
+                    }
+                }
+            };
+            var clone = log.__censorObject(obj, []);
+            expect(clone).not.to.be(obj);
+            expect(clone.child).not.to.be(obj.child);
+            expect(clone.child.child).not.to.be(obj.child.child);
+        });
+        it('should clone the object removing circular references', function () {
+            const obj = {
+                hello: "world",
+                child: {
+                    world: "peace",
+                    child: {
+                        bang: "war",
+                        child: null
+                    }
+                }
+            };
+            // Create a circular reference.
+            obj.child.child.child = obj.child;
+
+            var clone = log.__censorObject(obj, []);
+            expect(clone).not.to.be(obj);
+            expect(clone.child).not.to.be('[circular]');
+            expect(clone.child.child).not.to.be('[circular]');
+            expect(clone.child.child.child).to.be('[circular]');
+        });
+        it('should clone the object redacting censored keys', function () {
+            const obj = {
+                hello: "world",
+                child: {
+                    world: "peace",
+                    child: {
+                        bang: "war",
+                        child: null
+                    }
+                }
+            };
+            var clone = log.__censorObject(obj, ['bang', /ello/]);
+            expect(clone).not.to.be(obj);
+            expect(clone.hello).to.be('[redacted]');
+            expect(clone.child.child.bang).to.be('[redacted]');
+        });
+    });
+
     describe('censorship', function () {
 
         it('should support censoring sensitive fields in an object', function (done) {
