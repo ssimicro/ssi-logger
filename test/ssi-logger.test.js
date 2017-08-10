@@ -694,12 +694,12 @@ describe('ssi-logger', function() {
             beforeEach(function (done) {
                 consumer = new AmqpConsume({
                     routingKeys: [ "log.#" ],
-//                    queueName: null,
-//                    queueOptions: {
-//                        exclusive: true,
-//                        durable: false,
-//                        autoDelete: true
-//                    },
+                    queueName: '',
+                    queueOptions: {
+                        exclusive: true,
+                        durable: false,
+                        autoDelete: true
+                    },
                 });
                 consumer.connect((err) => {
                     consumer.purge(done);
