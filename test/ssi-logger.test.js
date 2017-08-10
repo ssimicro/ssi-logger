@@ -686,5 +686,66 @@ describe('ssi-logger', function() {
                 });
             });
         });
+        optDescribe("AMQP circuit", function () {
+            const AmqpConsume = require('./AmqpConsume');
+
+            let consumer;
+
+            beforeEach(function (done) {
+                consumer = new AmqpConsume({
+                    routingKeys: [ "log.#" ],
+//                    queueName: null,
+//                    queueOptions: {
+//                        exclusive: true,
+//                        durable: false,
+//                        autoDelete: true
+//                    },
+                });
+                consumer.connect(done);
+            });
+
+            afterEach(function (done) {
+                consumer.end();
+                consumer = null;
+                done();
+            });
+
+            it('should publish log message to AMQP', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+                    log.alert("Circuit Test", {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(msg);
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('ALERT');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Circuit Test");
+                        expect(payload.data.length).to.be(2);
+                        expect(payload.data[0]).to.eql({"hello": "world"});
+                        expect(payload.data[1]).to.eql(["foo", "bar"]);
+
+                        pub.end();
+                        done();
+                    });
+                });
+            });
+        });
     })
 });
