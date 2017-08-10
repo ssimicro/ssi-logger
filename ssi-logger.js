@@ -111,6 +111,7 @@ function addConvenienceFunctions(logger) {
 addConvenienceFunctions(module.exports);
 
 // Various transports...
+module.exports.amqpTransport = require('./lib/transports/amqp');
 module.exports.consoleTransport = require('./lib/transports/console');
 module.exports.streamTransport = require('./lib/transports/stream');
 module.exports.syslogTransport = require('./lib/transports/syslog');

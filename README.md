@@ -153,6 +153,30 @@ a transport such that a LOG_ALERT message about the database being down will tri
 
 Here are the available transports.
 
+### lib/transports/amqp
+
+`amqpTransport(options)` will log large JSON messages to an AMQP server.
+
+**Parameters**
+
+`options`:
+  - `url`: optional URL; default `amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/omicron`,
+  - `socketOptions`: optional object of socket options; default `{}`
+  - `exchangeName`: optional exchange name where to publish log messages; default "amq.topic" (RabbitMQ installed default)
+  - `logLevel`: optional log level filter, where only messages of this syslog level or higher are published; default "INFO"
+  - `facility`: optional syslog facility name; default "LOCAL0"
+
+**Return**
+A `log` event handler.
+
+Example:
+
+    process.on('log', log.amqpTransport({
+        url: 'amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/virtual_host',
+        exchangeName: 'logger'
+    }));
+
+
 ### lib/transports/console
 
 `consoleTransport(color, timestamp, stderr)` logs all messages to the console in the form "[level] message". The `color`

@@ -4,6 +4,9 @@
 var expect = require('expect.js');
 var log = require('../');
 
+const optDescribe = (process.env.TESTALL === 'YES' ? describe : describe.skip);
+const optIt = (process.env.TESTALL === 'YES' ? it : it.skip);
+
 describe('ssi-logger', function() {
     var level = 'INFO';
     var message = 'Test Message';
@@ -459,4 +462,229 @@ describe('ssi-logger', function() {
 
         });
     });
+
+    describe('amqpTransport', function () {
+        describe('setup', function () {
+            it('should return a handler', function (done) {
+                expect(log.amqpTransport({}, (err, amqpAgent) => amqpAgent.end())).to.be.a('function');
+                done();
+            });
+        });
+        describe('queue', function () {
+            it('should queue log message', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.level).to.be('INFO');
+                    expect(payload.facility).to.be('LOCAL0');
+                    expect(payload.message).to.be("Say something clever.");
+                    expect(payload.data.length).to.be(0);
+                    done();
+                });
+            });
+            it('should filter log messages below INFO', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.debug("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(0);
+                    done();
+                });
+            });
+            it('should filter log messages below ERROR', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({logLevel: 'ERROR'}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.warning("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(0);
+                    done();
+                });
+            });
+            it('should queue log messages as DAEMON.ERROR', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({logLevel: 'ERROR', facility: 'DAEMON'}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.error("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.level).to.be('ERROR');
+                    expect(payload.facility).to.be('DAEMON');
+                    expect(payload.message).to.be("Say something clever.");
+                    expect(payload.data.length).to.be(0);
+                    done();
+                });
+            });
+        });
+        describe('payload preparation', function () {
+            it('should have null message and empty data[]', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info();
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.level).to.be('INFO');
+                    expect(payload.facility).to.be('LOCAL0');
+                    expect(payload.message).to.be(null);
+                    expect(payload.data.length).to.be(0);
+                    done();
+                });
+            });
+            it('should have simple message and empty data[]', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be("Say something clever.");
+                    expect(payload.data.length).to.be(0);
+                    done();
+                });
+            });
+            it('should have null message and some data[]', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info({"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be(null);
+                    expect(payload.data.length).to.be(2);
+                    expect(payload.data[0]).to.eql({"hello": "world"});
+                    expect(payload.data[1]).to.eql(["foo", "bar"]);
+                    done();
+                });
+            });
+            it('should have simple message and some data[]', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be("Say something clever.");
+                    expect(payload.data.length).to.be(2);
+                    expect(payload.data[0]).to.eql({"hello": "world"});
+                    expect(payload.data[1]).to.eql(["foo", "bar"]);
+                    done();
+                });
+            });
+            it('should format printf-style message, remainder as data[]', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be("Say something clever, Jack N=123.");
+                    expect(payload.data.length).to.be(2);
+                    expect(payload.data[0]).to.eql({"hello": "world"});
+                    expect(payload.data[1]).to.eql(["foo", "bar"]);
+                    done();
+                });
+            });
+            it('should format message, remainder as data[] with appended defaults', function (done) {
+                let pub;
+
+                const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be("Say something clever, Jack N=123.");
+                    expect(payload.data.length).to.be(4);
+                    expect(payload.data[0]).to.eql({"hello": "world"});
+                    expect(payload.data[1]).to.eql(["foo", "bar"]);
+                    expect(payload.data[2]).to.eql({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
+                    expect(payload.data[3]).to.be('foobar');
+                    done();
+                });
+            });
+        });
+    })
 });

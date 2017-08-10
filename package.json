@@ -27,11 +27,14 @@
   },
   "homepage": "https://github.com/ssimicro/ssi-logger",
   "dependencies": {
+    "@ssi/error": "^3.0.1",
+    "amqplib": "^0.5.1",
     "chalk": "^1.1.3",
     "lodash": "^4.15.0",
     "moment": "^2.15.0",
     "modern-syslog": "^1.1.3",
-    "logformat": "^1.0.5"
+    "logformat": "^1.0.5",
+    "uuid": "^3.0.1"
   },
   "devDependencies": {
     "expect.js": "^0.3.1",
