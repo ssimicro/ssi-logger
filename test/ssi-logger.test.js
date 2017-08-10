@@ -685,6 +685,75 @@ describe('ssi-logger', function() {
                     done();
                 });
             });
+            it('should handle data[] with cicular reference', function (done) {
+                const obj = {
+                    hello: "world",
+                    child: {
+                        world: "peace",
+                        child: {
+                            bang: "war",
+                            child: null
+                        }
+                    }
+                };
+                // Create a circular reference.
+                obj.child.child.child = obj.child;
+
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Object with circular reference.", obj);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be("Object with circular reference.");
+                    expect(payload.data.length).to.be(1);
+                    expect(payload.data[0].hello).to.be("world");
+                    expect(payload.data[0].child.child.child).to.be("[circular]");
+                    done();
+                });
+            });
+            it('should handle data[] with redacted content', function (done) {
+                const obj = {
+                    hello: "world",
+                    child: {
+                        world: "peace",
+                        child: {
+                            bang: "war",
+                            child: null
+                        }
+                    }
+                };
+
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.censor(['bang', /ello/]);
+                    log.info("Object with circular reference.", obj);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.message).to.be("Object with circular reference.");
+                    expect(payload.data.length).to.be(1);
+                    expect(payload.data[0].hello).to.be("[redacted]");
+                    expect(payload.data[0].child.child.bang).to.be("[redacted]");
+
+                    log.censor([]);
+                    done();
+                });
+            });
         });
         optDescribe("AMQP circuit", function () {
             const AmqpConsume = require('./AmqpConsume');
@@ -707,11 +776,9 @@ describe('ssi-logger', function() {
             });
 
             afterEach(function (done) {
-                consumer.purge((err, ok) => {
-                    consumer.end();
-                    consumer = null;
-                    done();
-                });
+                consumer.end();
+                consumer = null;
+                done();
             });
 
             it('should publish single log message to AMQP', function (done) {
@@ -919,6 +986,104 @@ describe('ssi-logger', function() {
                             pub.end();
                             done();
                         }
+                    });
+                });
+            });
+            it('should publish single log message with circular data object', function (done) {
+                const obj = {
+                    hello: "world",
+                    child: {
+                        world: "peace",
+                        child: {
+                            bang: "war",
+                            child: null
+                        }
+                    }
+                };
+                // Create a circular reference.
+                obj.child.child.child = obj.child;
+
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+                    log.info("Circuit test with circular data object", obj);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(msg);
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('INFO');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Circuit test with circular data object");
+                        expect(payload.data.length).to.be(1);
+                        expect(payload.data[0].hello).to.be("world");
+                        expect(payload.data[0].child.child.child).to.be("[circular]");
+
+                        pub.end();
+                        done();
+                    });
+                });
+            });
+            it('should publish single log message with redacted data', function (done) {
+                const obj = {
+                    hello: "world",
+                    child: {
+                        world: "peace",
+                        child: {
+                            bang: "war",
+                            child: null
+                        }
+                    }
+                };
+
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+                    log.censor(['bang', /ello/]);
+                    log.info("Circuit test with redacted data object", obj);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(msg);
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('INFO');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Circuit test with redacted data object");
+                        expect(payload.data.length).to.be(1);
+                        expect(payload.data[0].hello).to.be("[redacted]");
+                        expect(payload.data[0].child.child.bang).to.be("[redacted]");
+
+                        log.censor([]);
+                        pub.end();
+                        done();
                     });
                 });
             });
