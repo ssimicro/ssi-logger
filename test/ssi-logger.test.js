@@ -789,6 +789,139 @@ describe('ssi-logger', function() {
                     });
                 });
             });
+            it('should simulate blocked event, queue log messages until unblocked event', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+
+                    pub.conn.on('blocked', function testBlocked() {
+                        pub.conn.removeListener('blocked', testBlocked);
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log('blocked');
+                        }
+                        expect(pub.queue.length).to.be(0);
+
+                        // 3. Queue next 2 messages.
+                        log.notice("Circuit Test 2", {count: 2});
+                        log.notice("Circuit Test 3", {count: 3});
+                    });
+
+                    pub.conn.on('unblocked', function testUnblocked() {
+                        pub.conn.removeListener('unblocked', testUnblocked);
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log('unblocked');
+                        }
+                        expect(pub.queue.length).to.be(0);
+                   });
+
+                    // 1. First message is published.
+                    log.notice("Circuit Test 1", {count: 1});
+                });
+
+                let log_count = 0;
+                process.on('log', function testf(log_event) {
+                    handler(log_event);
+
+                    if (++log_count === 3) {
+                        // 4. Unblock and drain queue.
+                        expect(pub.queue.length).to.be(2);
+                        pub.conn.emit('unblocked');
+                    }
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(msg);
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('NOTICE');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Circuit Test "+msg.fields.deliveryTag);
+                        expect(payload.data.length).to.be(1);
+                        expect(payload.data[0]).to.eql({"count": msg.fields.deliveryTag});
+
+                        switch (msg.fields.deliveryTag) {
+                        case 1:
+                            // 2. Block and queue next 2 messages.
+                            pub.conn.emit('blocked');
+                            break;
+                        case 3:
+                            // 5. Success
+                            process.removeListener('log', testf);
+                            pub.end();
+                            done();
+                        }
+                    });
+                });
+            });
+            it('should simulate full write buffer, queue log messages, send drain event', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+
+                    pub.chan.on('drain', function testDrain() {
+                        pub.chan.removeListener('drain', testDrain);
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log('drain');
+                        }
+                        expect(pub.queue.length).to.be(0);
+                   });
+
+                    // 1. Simulate full write buffer, force queuing.
+                    pub.isFlowing = false;
+
+                    // 2. Queue some messages.
+                    log.notice("Circuit Test 1", {count: 1});
+                    log.notice("Circuit Test 2", {count: 2});
+                    log.notice("Circuit Test 3", {count: 3});
+                });
+
+                let log_count = 0;
+                process.on('log', function testf(log_event) {
+                    handler(log_event);
+
+                    if (++log_count === 3) {
+                        // 3. Drain the message queue.
+                        expect(pub.queue.length).to.be(3);
+                        pub.chan.emit('drain');
+                    }
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(msg);
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('NOTICE');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Circuit Test "+msg.fields.deliveryTag);
+                        expect(payload.data.length).to.be(1);
+                        expect(payload.data[0]).to.eql({"count": msg.fields.deliveryTag});
+
+                        switch (msg.fields.deliveryTag) {
+                        case 3:
+                            // 4. Success
+                            process.removeListener('log', testf);
+                            pub.end();
+                            done();
+                        }
+                    });
+                });
+            });
         });
     })
 });
