@@ -341,6 +341,43 @@ describe('ssi-logger', function() {
             expect(clone.hello).to.be('[redacted]');
             expect(clone.child.child.bang).to.be('[redacted]');
         });
+        it('should clone the objects replacing special types and values', function () {
+            const basics = {
+                "bool": true,
+                "int": 123456,
+                "decimal": 1234.56,
+                "string": "(wave)",
+                "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+            };
+            const specials = {
+                "null": null,
+                "undefined": undefined,
+                "Error": new Error('You goofed!'),
+                "SyntaxError": new SyntaxError("I am blind."),
+                "Function": function noop() { },
+                "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                "RegExp": /^[Hh]ello .orld$/,
+                "Infinity": Infinity,
+                "NaN": NaN,
+            };
+
+            var clone;
+
+            clone = log.__censorObject(basics, []);
+            expect(clone).not.to.be(basics);
+            expect(clone).to.eql(basics);
+
+            clone = log.__censorObject(specials, []);
+            expect(clone.null).to.be("[null]");
+            expect(clone.undefined).to.be("[undefined]");
+            expect(clone.Error).to.be("[Error You goofed!]");
+            expect(clone.SyntaxError).to.be("[SyntaxError I am blind.]");
+            expect(clone.Function).to.be("[function noop]");
+            expect(clone.Date).to.be("2017-08-10T17:56:19.000Z");
+            expect(clone.RegExp).to.be("/^[Hh]ello .orld$/");
+            expect(clone.Infinity).to.be("[Infinity]");
+            expect(clone.NaN).to.be("[NaN]");
+        });
     });
 
     describe('censorship', function () {
@@ -531,7 +568,7 @@ describe('ssi-logger', function() {
                     done();
                 });
             });
-            it('should queue log messages as DAEMON.ERROR', function (done) {
+            it('should not filter log message ERROR or above', function (done) {
                 let pub;
 
                 const handler = log.amqpTransport({logLevel: 'ERROR', facility: 'DAEMON'}, (err, publisher) => {
@@ -751,6 +788,58 @@ describe('ssi-logger', function() {
                     expect(payload.data[0].child.child.bang).to.be("[redacted]");
 
                     log.censor([]);
+                    done();
+                });
+            });
+            it('should handle data[] with special types and values', function (done) {
+                const basics = {
+                    "bool": true,
+                    "int": 123456,
+                    "decimal": 1234.56,
+                    "string": "(wave)",
+                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+                };
+                const specials = {
+                    "null": null,
+                    "undefined": undefined,
+                    "Error": new Error('You goofed!'),
+                    "SyntaxError": new SyntaxError("I am blind."),
+                    "Function": function noop() { },
+                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                    "RegExp": /^[Hh]ello .orld$/,
+                    "Infinity": Infinity,
+                    "NaN": NaN,
+                };
+
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Special types and values.", basics, specials);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.level).to.be('INFO');
+                    expect(payload.facility).to.be('LOCAL0');
+                    expect(payload.message).to.be("Special types and values.");
+                    expect(payload.data.length).to.be(2);
+                    expect(payload.data[0]).to.eql(basics);
+
+                    expect(payload.data[1].null).to.be("[null]");
+                    expect(payload.data[1].undefined).to.be("[undefined]");
+                    expect(payload.data[1].Error).to.be("[Error You goofed!]");
+                    expect(payload.data[1].SyntaxError).to.be("[SyntaxError I am blind.]");
+                    expect(payload.data[1].Function).to.be("[function noop]");
+                    expect(payload.data[1].Date).to.be("2017-08-10T17:56:19.000Z");
+                    expect(payload.data[1].RegExp).to.be("/^[Hh]ello .orld$/");
+                    expect(payload.data[1].Infinity).to.be("[Infinity]");
+                    expect(payload.data[1].NaN).to.be("[NaN]");
+
                     done();
                 });
             });
@@ -1082,6 +1171,70 @@ describe('ssi-logger', function() {
                         expect(payload.data[0].child.child.bang).to.be("[redacted]");
 
                         log.censor([]);
+                        pub.end();
+                        done();
+                    });
+                });
+            });
+            it('should publish single log message with assorted data types and values', function (done) {
+                const basics = {
+                    "bool": true,
+                    "int": 123456,
+                    "decimal": 1234.56,
+                    "string": "(wave)",
+                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+                };
+                const specials = {
+                    "null": null,
+                    "undefined": undefined,
+                    "Error": new Error('You goofed!'),
+                    "SyntaxError": new SyntaxError("I am blind."),
+                    "Function": function noop() { },
+                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                    "RegExp": /^[Hh]ello .orld$/,
+                    "Infinity": Infinity,
+                    "NaN": NaN,
+                }
+
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+                    log.info("Assorted data types", basics, specials);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(JSON.stringify(msg, null, 2));
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('INFO');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Assorted data types");
+                        expect(payload.data.length).to.be(2);
+                        expect(payload.data[0]).to.eql(basics);
+
+                        expect(payload.data[1].null).to.be("[null]");
+                        expect(payload.data[1].undefined).to.be("[undefined]");
+                        expect(payload.data[1].Error).to.be("[Error You goofed!]");
+                        expect(payload.data[1].SyntaxError).to.be("[SyntaxError I am blind.]");
+                        expect(payload.data[1].Function).to.be("[function noop]");
+                        expect(payload.data[1].Date).to.be("2017-08-10T17:56:19.000Z");
+                        expect(payload.data[1].RegExp).to.be("/^[Hh]ello .orld$/");
+                        expect(payload.data[1].Infinity).to.be("[Infinity]");
+                        expect(payload.data[1].NaN).to.be("[NaN]");
+
                         pub.end();
                         done();
                     });

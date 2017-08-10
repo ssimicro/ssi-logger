@@ -42,6 +42,7 @@
     "jshint": "^2.9.3"
   },
   "jshintConfig": {
+    "esversion": 6,
     "bitwise": true,
     "curly": true,
     "eqeqeq": true,

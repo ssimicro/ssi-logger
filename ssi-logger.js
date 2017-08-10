@@ -4,11 +4,28 @@
 var _ = require('lodash');
 var util = require('util');
 var logformat = require('logformat');
+var moment = require('moment');
 
 function __censorObject(obj, patterns) {
     const objects_seen = [];
     return _.cloneDeepWith(obj, function (value, key, obj, stack) {
-        if (_.isObjectLike(value)) {
+        if (value === null) {
+            return "[null]";
+        } else if (value === undefined) {
+            return "[undefined]";
+        } else if (value === Infinity) {
+            return "[Infinity]";
+        } else if (_.isNaN(value)) {
+            return "[NaN]";
+        } else if (_.isDate(value)) {
+            return moment(value).toISOString();
+        } else if (_.isError(value)) {
+            return `[${value.name} ${value.message}]`;
+        } else if (_.isFunction(value)) {
+            return `[function ${value.name}]`;
+        } else if (_.isRegExp(value)) {
+            return `/${value.source}/`;
+        } else if (_.isObjectLike(value)) {
              if (objects_seen.indexOf(value) !== -1) {
                 return "[circular]";
             }
