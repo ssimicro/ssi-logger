@@ -56,9 +56,6 @@ class AmqpConsume extends AmqpAgent {
     }
 
     consume(callback) {
-        if (!this.chan) {
-            return callback(new SError('AMQP_CONSUME_CHANNEL_ERROR', 'no channel'));
-        }
         this.chan.consume(this.options.queueName, (msg) => {
             if (msg === null) {
                 // Consumer cancelled by RabbitMQ.
@@ -79,6 +76,10 @@ class AmqpConsume extends AmqpAgent {
                 }
             });
         }, this.options.consumeOptions);
+    }
+
+    purge(callback) {
+        this.chan.purgeQueue(this.options.queueName, callback);
     }
 }
 

@@ -701,16 +701,20 @@ describe('ssi-logger', function() {
 //                        autoDelete: true
 //                    },
                 });
-                consumer.connect(done);
+                consumer.connect((err) => {
+                    consumer.purge(done);
+                });
             });
 
             afterEach(function (done) {
-                consumer.end();
-                consumer = null;
-                done();
+                consumer.purge((err, ok) => {
+                    consumer.end();
+                    consumer = null;
+                    done();
+                });
             });
 
-            it('should publish log message to AMQP', function (done) {
+            it('should publish single log message to AMQP', function (done) {
                 let pub;
 
                 const handler = log.amqpTransport({}, (err, publisher) => {
@@ -743,6 +747,45 @@ describe('ssi-logger', function() {
 
                         pub.end();
                         done();
+                    });
+                });
+            });
+            it('should publish 3 log messages to AMQP', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport({}, (err, publisher) => {
+                    pub = publisher;
+                    log.notice("Circuit Test 1", {count: 1});
+                    log.notice("Circuit Test 2", {count: 2});
+                    log.notice("Circuit Test 3", {count: 3});
+                });
+
+                process.on('log', function testf(log_event) {
+                    handler(log_event);
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(msg);
+                        }
+
+                        // What goes around...
+                        const payload = msg.content;
+                        expect(payload.level).to.be('NOTICE');
+                        expect(payload.facility).to.be('LOCAL0');
+                        expect(payload.message).to.be("Circuit Test "+msg.fields.deliveryTag);
+                        expect(payload.data.length).to.be(1);
+                        expect(payload.data[0]).to.eql({"count": msg.fields.deliveryTag});
+
+                        if (msg.fields.deliveryTag === 3) {
+                            process.removeListener('log', testf);
+                            pub.end();
+                            done();
+                        }
                     });
                 });
             });
