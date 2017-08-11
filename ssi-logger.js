@@ -2,6 +2,7 @@
 "use strict";
 
 var _ = require('lodash');
+var os = require('os');
 var util = require('util');
 var logformat = require('logformat');
 
@@ -74,8 +75,12 @@ function log(level, message) {
         });
     });
 
+    // Note that os.hostname() appears to only return FQDN when
+    // the machine has a proper DNS A record.
+
     process.emit('log', {
         created: new Date(),
+        host: os.hostname(),
         level: level,
         message: message,
         data: args
