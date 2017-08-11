@@ -55,6 +55,16 @@ class AmqpConsume extends AmqpAgent {
         });
     }
 
+    decodeMessage(contentType, contentEncoding, payload) {
+        if (contentType === 'application/json' || contentType === 'text/json') {
+            return JSON.parse(payload.toString('utf8'));
+        } else if (contentType === 'application/octet-stream') {
+            return payload; // binary data, user is expecting a buffer
+        } else {
+            return payload.toString('utf8'); // some kind of text
+        }
+    }
+
     consume(callback) {
         this.chan.consume(this.options.queueName, (msg) => {
             if (msg === null) {
