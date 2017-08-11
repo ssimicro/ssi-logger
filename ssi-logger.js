@@ -4,7 +4,6 @@
 var _ = require('lodash');
 var util = require('util');
 var logformat = require('logformat');
-var moment = require('moment');
 
 function __censorObject(obj, patterns) {
     const objects_seen = [];
@@ -18,7 +17,7 @@ function __censorObject(obj, patterns) {
         } else if (_.isNaN(value)) {
             return "[NaN]";
         } else if (_.isDate(value)) {
-            return moment(value).toISOString();
+            return value.toISOString();
         } else if (_.isError(value)) {
             return `[${value.name} ${value.message}]`;
         } else if (_.isFunction(value)) {
@@ -76,6 +75,7 @@ function log(level, message) {
     });
 
     process.emit('log', {
+        created: new Date(),
         level: level,
         message: message,
         data: args
