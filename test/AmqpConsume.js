@@ -24,7 +24,7 @@ class AmqpConsume extends AmqpAgent {
         super.connect((err) => {
             this.chan.assertQueue(this.options.queueName, this.options.queueOptions, (err, ok) => {
                 if (err) {
-                    return this.bail(new SError(err, 'AMQP_CONSUME_ASSERT_QUEUE_FAIL', 'queue assertion error'), optDone);
+                    return this.bail(new Error('AMQP_CONSUME_ASSERT_QUEUE_FAIL'), optDone);
                 }
 
                 if (this.options.queueName === null) {
@@ -36,7 +36,7 @@ class AmqpConsume extends AmqpAgent {
                 let keyi = 0;
                 const applyBindings = (err) => {
                     if (err) {
-                        err = new SError(err, 'AMQP_CONSUME_BINDING_FAIL', 'binding failure');
+                        err = new Error('AMQP_CONSUME_BINDING_FAIL');
                         err.routingKey = this.options.routingKeys[keyi];
                         return this.bail(err, optDone);
                     }
