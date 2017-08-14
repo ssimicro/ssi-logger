@@ -3,12 +3,7 @@
 const log = require('../');
 
 process.on('log', log.consoleTransport(true, true));
-process.on('log', log.amqpTransport({logLevel: 'DEBUG'}, (err, amqp) => {
-    if (err) {
-        process.exit(1);
-    }
-    console.log(amqp);
-}));
+process.on('log', log.amqpTransport({logLevel: 'DEBUG'}));
 
 log.info("Hello world, %s", "Jack", { hello: 'world', count: 123 }, ["foo", "bar"]);
 
