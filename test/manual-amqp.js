@@ -3,9 +3,32 @@
 const log = require('../');
 
 process.on('log', log.consoleTransport(true, true));
-process.on('log', log.amqpTransport({logLevel: 'DEBUG'}));
+//process.on('log', log.amqpTransport({logLevel: 'DEBUG'}));
+//process.on('log', log.amqpTransport());
 
-log.info("Hello world, %s", "Jack", { hello: 'world', count: 123 }, ["foo", "bar"]);
+process.on('log', log.amqpTransport((err, amqplog) => {
+    if (err) {
+        process.exit(1);
+    }
+    console.log('connected');
+    process.on('SIGINT', () => {
+        amqplog.chan.emit('error', new Error('goofed!'));
+    });
+}));
+
+const obj = {
+    hello: "world",
+    child: {
+        world: "peace",
+        child: {
+            bang: "war",
+            child: null
+        }
+    }
+};
+
+
+log.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, ["foo", "bar"]);
 
 log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, ["bar", "bat"]);
 

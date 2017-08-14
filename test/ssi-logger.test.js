@@ -2,7 +2,9 @@
 "use strict";
 
 var expect = require('expect.js');
+var fs = require('fs');
 var log = require('../');
+var path = require('path');
 
 const optDescribe = (process.env.TESTALL === 'YES' ? describe : describe.skip);
 const optIt = (process.env.TESTALL === 'YES' ? it : it.skip);
@@ -503,7 +505,11 @@ describe('ssi-logger', function() {
     describe('amqpTransport', function () {
         describe('setup', function () {
             it('should return a handler', function (done) {
-                expect(log.amqpTransport({}, (err, amqpAgent) => amqpAgent.end())).to.be.a('function');
+                expect(log.amqpTransport({}, (err, publisher) => publisher.end())).to.be.a('function');
+                done();
+            });
+            it('should return a handler when no options argument', function (done) {
+                expect(log.amqpTransport((err, publisher) => publisher.end())).to.be.a('function');
                 done();
             });
         });
