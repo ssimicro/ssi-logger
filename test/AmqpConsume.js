@@ -2,7 +2,7 @@
 "use strict";
 
 const _ = require('lodash');
-const AmqpAgent = require('../lib/transports/AmqpAgent');
+const AmqpAgent = require('./AmqpAgent');
 
 class AmqpConsume extends AmqpAgent {
     constructor(options) {
