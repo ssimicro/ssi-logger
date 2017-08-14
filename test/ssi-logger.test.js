@@ -525,10 +525,10 @@ describe('ssi-logger', function() {
                     expect(pub.queue.length).to.be(1);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._level).to.be('INFO');
-                    expect(payload._facility).to.be('LOCAL0');
-                    expect(payload._message).to.be("Say something clever.");
-                    expect(payload._data.length).to.be(0);
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_message).to.be("Say something clever.");
+                    expect(payload.log_data.length).to.be(0);
                     done();
                 });
             });
@@ -585,10 +585,10 @@ describe('ssi-logger', function() {
                     expect(pub.queue.length).to.be(1);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._level).to.be('ERROR');
-                    expect(payload._facility).to.be('DAEMON');
-                    expect(payload._message).to.be("Say something clever.");
-                    expect(payload._data.length).to.be(0);
+                    expect(payload.log_metadata.level).to.be('ERROR');
+                    expect(payload.log_metadata.facility).to.be('DAEMON');
+                    expect(payload.log_message).to.be("Say something clever.");
+                    expect(payload.log_data.length).to.be(0);
                     done();
                 });
             });
@@ -608,10 +608,10 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._level).to.be('INFO');
-                    expect(payload._facility).to.be('LOCAL0');
-                    expect(payload._message).to.be(null);
-                    expect(payload._data.length).to.be(0);
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_message).to.be(null);
+                    expect(payload.log_data.length).to.be(0);
                     done();
                 });
             });
@@ -629,8 +629,8 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be("Say something clever.");
-                    expect(payload._data.length).to.be(0);
+                    expect(payload.log_message).to.be("Say something clever.");
+                    expect(payload.log_data.length).to.be(0);
                     done();
                 });
             });
@@ -648,10 +648,10 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be(null);
-                    expect(payload._data.length).to.be(2);
-                    expect(payload._data[0]).to.eql({"hello": "world"});
-                    expect(payload._data[1]).to.eql(["foo", "bar"]);
+                    expect(payload.log_message).to.be(null);
+                    expect(payload.log_data.length).to.be(2);
+                    expect(payload.log_data[0]).to.eql({"hello": "world"});
+                    expect(payload.log_data[1]).to.eql(["foo", "bar"]);
                     done();
                 });
             });
@@ -669,10 +669,10 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be("Say something clever.");
-                    expect(payload._data.length).to.be(2);
-                    expect(payload._data[0]).to.eql({"hello": "world"});
-                    expect(payload._data[1]).to.eql(["foo", "bar"]);
+                    expect(payload.log_message).to.be("Say something clever.");
+                    expect(payload.log_data.length).to.be(2);
+                    expect(payload.log_data[0]).to.eql({"hello": "world"});
+                    expect(payload.log_data[1]).to.eql(["foo", "bar"]);
                     done();
                 });
             });
@@ -690,10 +690,10 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be("Say something clever, Jack N=123.");
-                    expect(payload._data.length).to.be(2);
-                    expect(payload._data[0]).to.eql({"hello": "world"});
-                    expect(payload._data[1]).to.eql(["foo", "bar"]);
+                    expect(payload.log_message).to.be("Say something clever, Jack N=123.");
+                    expect(payload.log_data.length).to.be(2);
+                    expect(payload.log_data[0]).to.eql({"hello": "world"});
+                    expect(payload.log_data[1]).to.eql(["foo", "bar"]);
                     done();
                 });
             });
@@ -713,12 +713,12 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be("Say something clever, Jack N=123.");
-                    expect(payload._data.length).to.be(4);
-                    expect(payload._data[0]).to.eql({"hello": "world"});
-                    expect(payload._data[1]).to.eql(["foo", "bar"]);
-                    expect(payload._data[2]).to.eql({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
-                    expect(payload._data[3]).to.be('foobar');
+                    expect(payload.log_message).to.be("Say something clever, Jack N=123.");
+                    expect(payload.log_data.length).to.be(4);
+                    expect(payload.log_data[0]).to.eql({"hello": "world"});
+                    expect(payload.log_data[1]).to.eql(["foo", "bar"]);
+                    expect(payload.log_data[2]).to.eql({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' });
+                    expect(payload.log_data[3]).to.be('foobar');
                     done();
                 });
             });
@@ -749,10 +749,10 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be("Object with circular reference.");
-                    expect(payload._data.length).to.be(1);
-                    expect(payload._data[0].hello).to.be("world");
-                    expect(payload._data[0].child.child.child).to.be("[circular]");
+                    expect(payload.log_message).to.be("Object with circular reference.");
+                    expect(payload.log_data.length).to.be(1);
+                    expect(payload.log_data[0].hello).to.be("world");
+                    expect(payload.log_data[0].child.child.child).to.be("[circular]");
                     done();
                 });
             });
@@ -782,10 +782,10 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._message).to.be("Object with circular reference.");
-                    expect(payload._data.length).to.be(1);
-                    expect(payload._data[0].hello).to.be("[redacted]");
-                    expect(payload._data[0].child.child.bang).to.be("[redacted]");
+                    expect(payload.log_message).to.be("Object with circular reference.");
+                    expect(payload.log_data.length).to.be(1);
+                    expect(payload.log_data[0].hello).to.be("[redacted]");
+                    expect(payload.log_data[0].child.child.bang).to.be("[redacted]");
 
                     log.censor([]);
                     done();
@@ -824,21 +824,21 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload._level).to.be('INFO');
-                    expect(payload._facility).to.be('LOCAL0');
-                    expect(payload._message).to.be("Special types and values.");
-                    expect(payload._data.length).to.be(2);
-                    expect(payload._data[0]).to.eql(basics);
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_message).to.be("Special types and values.");
+                    expect(payload.log_data.length).to.be(2);
+                    expect(payload.log_data[0]).to.eql(basics);
 
-                    expect(payload._data[1].null).to.be("[null]");
-                    expect(payload._data[1].undefined).to.be("[undefined]");
-                    expect(payload._data[1].Error).to.be("[Error You goofed!]");
-                    expect(payload._data[1].SyntaxError).to.be("[SyntaxError I am blind.]");
-                    expect(payload._data[1].Function).to.be("[function noop]");
-                    expect(payload._data[1].Date).to.be("2017-08-10T17:56:19.000Z");
-                    expect(payload._data[1].RegExp).to.be("/^[Hh]ello .orld$/");
-                    expect(payload._data[1].Infinity).to.be("[Infinity]");
-                    expect(payload._data[1].NaN).to.be("[NaN]");
+                    expect(payload.log_data[1].null).to.be("[null]");
+                    expect(payload.log_data[1].undefined).to.be("[undefined]");
+                    expect(payload.log_data[1].Error).to.be("[Error You goofed!]");
+                    expect(payload.log_data[1].SyntaxError).to.be("[SyntaxError I am blind.]");
+                    expect(payload.log_data[1].Function).to.be("[function noop]");
+                    expect(payload.log_data[1].Date).to.be("2017-08-10T17:56:19.000Z");
+                    expect(payload.log_data[1].RegExp).to.be("/^[Hh]ello .orld$/");
+                    expect(payload.log_data[1].Infinity).to.be("[Infinity]");
+                    expect(payload.log_data[1].NaN).to.be("[NaN]");
 
                     done();
                 });
@@ -894,12 +894,12 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('ALERT');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Circuit Test");
-                        expect(payload._data.length).to.be(2);
-                        expect(payload._data[0]).to.eql({"hello": "world"});
-                        expect(payload._data[1]).to.eql(["foo", "bar"]);
+                        expect(payload.log_metadata.level).to.be('ALERT');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Circuit Test");
+                        expect(payload.log_data.length).to.be(2);
+                        expect(payload.log_data[0]).to.eql({"hello": "world"});
+                        expect(payload.log_data[1]).to.eql(["foo", "bar"]);
 
                         pub.end();
                         done();
@@ -931,11 +931,11 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('NOTICE');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Circuit Test "+msg.fields.deliveryTag);
-                        expect(payload._data.length).to.be(1);
-                        expect(payload._data[0]).to.eql({"count": msg.fields.deliveryTag});
+                        expect(payload.log_metadata.level).to.be('NOTICE');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Circuit Test "+msg.fields.deliveryTag);
+                        expect(payload.log_data.length).to.be(1);
+                        expect(payload.log_data[0]).to.eql({"count": msg.fields.deliveryTag});
 
                         if (msg.fields.deliveryTag === 3) {
                             process.removeListener('log', testf);
@@ -997,11 +997,11 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('NOTICE');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Circuit Test "+msg.fields.deliveryTag);
-                        expect(payload._data.length).to.be(1);
-                        expect(payload._data[0]).to.eql({"count": msg.fields.deliveryTag});
+                        expect(payload.log_metadata.level).to.be('NOTICE');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Circuit Test "+msg.fields.deliveryTag);
+                        expect(payload.log_data.length).to.be(1);
+                        expect(payload.log_data[0]).to.eql({"count": msg.fields.deliveryTag});
 
                         switch (msg.fields.deliveryTag) {
                         case 1:
@@ -1062,11 +1062,11 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('NOTICE');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Circuit Test "+msg.fields.deliveryTag);
-                        expect(payload._data.length).to.be(1);
-                        expect(payload._data[0]).to.eql({"count": msg.fields.deliveryTag});
+                        expect(payload.log_metadata.level).to.be('NOTICE');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Circuit Test "+msg.fields.deliveryTag);
+                        expect(payload.log_data.length).to.be(1);
+                        expect(payload.log_data[0]).to.eql({"count": msg.fields.deliveryTag});
 
                         switch (msg.fields.deliveryTag) {
                         case 3:
@@ -1115,12 +1115,12 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('INFO');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Circuit test with circular data object");
-                        expect(payload._data.length).to.be(1);
-                        expect(payload._data[0].hello).to.be("world");
-                        expect(payload._data[0].child.child.child).to.be("[circular]");
+                        expect(payload.log_metadata.level).to.be('INFO');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Circuit test with circular data object");
+                        expect(payload.log_data.length).to.be(1);
+                        expect(payload.log_data[0].hello).to.be("world");
+                        expect(payload.log_data[0].child.child.child).to.be("[circular]");
 
                         pub.end();
                         done();
@@ -1163,12 +1163,12 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('INFO');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Circuit test with redacted data object");
-                        expect(payload._data.length).to.be(1);
-                        expect(payload._data[0].hello).to.be("[redacted]");
-                        expect(payload._data[0].child.child.bang).to.be("[redacted]");
+                        expect(payload.log_metadata.level).to.be('INFO');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Circuit test with redacted data object");
+                        expect(payload.log_data.length).to.be(1);
+                        expect(payload.log_data[0].hello).to.be("[redacted]");
+                        expect(payload.log_data[0].child.child.bang).to.be("[redacted]");
 
                         log.censor([]);
                         pub.end();
@@ -1219,21 +1219,21 @@ describe('ssi-logger', function() {
 
                         // What goes around...
                         const payload = msg.content;
-                        expect(payload._level).to.be('INFO');
-                        expect(payload._facility).to.be('LOCAL0');
-                        expect(payload._message).to.be("Assorted data types");
-                        expect(payload._data.length).to.be(2);
-                        expect(payload._data[0]).to.eql(basics);
+                        expect(payload.log_metadata.level).to.be('INFO');
+                        expect(payload.log_metadata.facility).to.be('LOCAL0');
+                        expect(payload.log_message).to.be("Assorted data types");
+                        expect(payload.log_data.length).to.be(2);
+                        expect(payload.log_data[0]).to.eql(basics);
 
-                        expect(payload._data[1].null).to.be("[null]");
-                        expect(payload._data[1].undefined).to.be("[undefined]");
-                        expect(payload._data[1].Error).to.be("[Error You goofed!]");
-                        expect(payload._data[1].SyntaxError).to.be("[SyntaxError I am blind.]");
-                        expect(payload._data[1].Function).to.be("[function noop]");
-                        expect(payload._data[1].Date).to.be("2017-08-10T17:56:19.000Z");
-                        expect(payload._data[1].RegExp).to.be("/^[Hh]ello .orld$/");
-                        expect(payload._data[1].Infinity).to.be("[Infinity]");
-                        expect(payload._data[1].NaN).to.be("[NaN]");
+                        expect(payload.log_data[1].null).to.be("[null]");
+                        expect(payload.log_data[1].undefined).to.be("[undefined]");
+                        expect(payload.log_data[1].Error).to.be("[Error You goofed!]");
+                        expect(payload.log_data[1].SyntaxError).to.be("[SyntaxError I am blind.]");
+                        expect(payload.log_data[1].Function).to.be("[function noop]");
+                        expect(payload.log_data[1].Date).to.be("2017-08-10T17:56:19.000Z");
+                        expect(payload.log_data[1].RegExp).to.be("/^[Hh]ello .orld$/");
+                        expect(payload.log_data[1].Infinity).to.be("[Infinity]");
+                        expect(payload.log_data[1].NaN).to.be("[NaN]");
 
                         pub.end();
                         done();
