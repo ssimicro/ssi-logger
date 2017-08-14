@@ -28,9 +28,11 @@ const obj = {
 };
 
 
-log.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, ["foo", "bar"]);
+log.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, ["foo", "bar"], {hello: 'bye'}, ['x','y','z']);
 
-log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, ["bar", "bat"]);
+log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, true, ["bar", "bat"], "slippery", 321);
+
+log.info("an error type", new Error("goofy"), new SyntaxError('obtuse'));
 
 setTimeout(function () {
     for (var i = 0; i < 100; i++) {
