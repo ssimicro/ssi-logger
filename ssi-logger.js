@@ -6,6 +6,21 @@ var os = require('os');
 var util = require('util');
 var logformat = require('logformat');
 
+var level_names = [
+    'SILLY',
+    'DEBUG',
+    'VERBOSE',
+    'INFO',
+    'NOTICE',
+    'WARN',
+    'WARNING',
+    'ERROR',
+    'ERR',
+    'CRIT',
+    'ALERT',
+    'EMERG',
+];
+
 function __censorObject(obj, patterns) {
     const objects_seen = [];
     return _.cloneDeepWith(obj, function (value, key, obj, stack) {
@@ -116,6 +131,7 @@ function defaults() {
 module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
+module.exports.level_names = level_names;
 
 if (process.env.NODE_ENV !== 'production') {
     // Internal unit testing.
@@ -125,7 +141,7 @@ if (process.env.NODE_ENV !== 'production') {
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
     logger.log = function () { logger.apply(null, Array.prototype.slice.call(arguments)); };
-    _.forEach(['EMERG', 'ALERT', 'CRIT', 'ERR', 'ERROR', 'WARNING', 'WARN', 'NOTICE', 'INFO', 'VERBOSE', 'DEBUG', 'SILLY'], function (level) {
+    _.forEach(level_names, function (level) {
         logger[level.toLowerCase()] = function () { logger.apply(null, _.union([level], Array.prototype.slice.call(arguments))); };
     });
 }
