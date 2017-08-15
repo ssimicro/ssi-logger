@@ -352,11 +352,17 @@ describe('ssi-logger', function() {
                 "string": "(wave)",
                 "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
             };
+
+            const error = new Error('You goofed!');
+            error.extra = "cream pie";
+            error.inner = new SyntaxError("I am blind.");
+            error.inner.inner = new Error("Where's the kaboom?");
+            error.inner.inner.inner = null;
+
             const specials = {
                 "null": null,
                 "undefined": undefined,
-                "Error": new Error('You goofed!'),
-                "SyntaxError": new SyntaxError("I am blind."),
+                "Error": error,
                 "Function": function noop() { },
                 "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
                 "RegExp": /^[Hh]ello .orld$/,
@@ -371,15 +377,28 @@ describe('ssi-logger', function() {
             expect(clone).to.eql(basics);
 
             clone = filterObject(specials, []);
-            expect(clone.null).to.be("[null]");
+            expect(clone.null).to.be(null);
             expect(clone.undefined).to.be("[undefined]");
-            expect(clone.Error).to.be("[Error You goofed!]");
-            expect(clone.SyntaxError).to.be("[SyntaxError I am blind.]");
             expect(clone.Function).to.be("[function noop]");
-            expect(clone.Date).to.be("2017-08-10T17:56:19.000Z");
+            expect(clone.Date).to.be.a(Date);
             expect(clone.RegExp).to.be("/^[Hh]ello .orld$/");
             expect(clone.Infinity).to.be("[Infinity]");
             expect(clone.NaN).to.be("[NaN]");
+
+            expect(clone.Error).to.eql({
+                "name":"Error",
+                "message":"You goofed!",
+                "extra":"cream pie",
+                "inner":{
+                    "name":"SyntaxError",
+                    "message":"I am blind.",
+                    "inner":{
+                        "name":"Error",
+                        "message":"Where's the kaboom?",
+                        "inner":null
+                    }
+                }
+            });
         });
     });
 
@@ -721,10 +740,14 @@ describe('ssi-logger', function() {
                     handler(log_event);
 
                     const payload = pub.queue[0].payload;
-                    expect(payload.log_message).to.be("Append Jack 123 543.21 true [Error goofed]");
+                    expect(payload.log_message).to.be("Append Jack 123 543.21 true");
                     expect(payload.hello).to.be("world");
                     expect(payload.arr0_0).to.be('foo');
                     expect(payload.arr0_1).to.be('bar');
+                    expect(payload).to.have.key('name');
+                    expect(payload.name).to.be('Error');
+                    expect(payload).to.have.key('message');
+                    expect(payload.message).to.be('goofed');
                     done();
                 });
             });
@@ -832,11 +855,17 @@ describe('ssi-logger', function() {
                     "string": "(wave)",
                     "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
                 };
+
+                const error = new Error('You goofed!');
+                error.extra = "cream pie";
+                error.inner = new SyntaxError("I am blind.");
+                error.inner.inner = new Error("Where's the kaboom?");
+                error.inner.inner.inner = null;
+
                 const specials = {
                     "null": null,
                     "undefined": undefined,
-                    "Error": new Error('You goofed!'),
-                    "SyntaxError": new SyntaxError("I am blind."),
+                    "Error": error,
                     "Function": function noop() { },
                     "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
                     "RegExp": /^[Hh]ello .orld$/,
@@ -867,15 +896,28 @@ describe('ssi-logger', function() {
                     expect(payload).to.have.key('array');
                     expect(payload.array).to.eql(basics.array);
 
-                    expect(payload.null).to.be("[null]");
+                    expect(payload.null).to.be(null);
                     expect(payload.undefined).to.be("[undefined]");
-                    expect(payload.Error).to.be("[Error You goofed!]");
-                    expect(payload.SyntaxError).to.be("[SyntaxError I am blind.]");
                     expect(payload.Function).to.be("[function noop]");
-                    expect(payload.Date).to.be("2017-08-10T17:56:19.000Z");
+                    expect(payload.Date.toISOString()).to.be("2017-08-10T17:56:19.000Z");
                     expect(payload.RegExp).to.be("/^[Hh]ello .orld$/");
                     expect(payload.Infinity).to.be("[Infinity]");
                     expect(payload.NaN).to.be("[NaN]");
+
+                    expect(payload.Error).to.eql({
+                        "name":"Error",
+                        "message":"You goofed!",
+                        "extra":"cream pie",
+                        "inner":{
+                            "name":"SyntaxError",
+                            "message":"I am blind.",
+                            "inner":{
+                                "name":"Error",
+                                "message":"Where's the kaboom?",
+                                "inner":null
+                            }
+                        }
+                    });
 
                     done();
                 });
@@ -1223,11 +1265,17 @@ describe('ssi-logger', function() {
                     "string": "(wave)",
                     "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
                 };
+
+                const error = new Error('You goofed!');
+                error.extra = "cream pie";
+                error.inner = new SyntaxError("I am blind.");
+                error.inner.inner = new Error("Where's the kaboom?");
+                error.inner.inner.inner = null;
+
                 const specials = {
                     "null": null,
                     "undefined": undefined,
-                    "Error": new Error('You goofed!'),
-                    "SyntaxError": new SyntaxError("I am blind."),
+                    "Error": error,
                     "Function": function noop() { },
                     "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
                     "RegExp": /^[Hh]ello .orld$/,
@@ -1268,15 +1316,28 @@ describe('ssi-logger', function() {
                         expect(payload).to.have.key('array');
                         expect(payload.array).to.eql(basics.array);
 
-                        expect(payload.null).to.be("[null]");
+                        expect(payload.null).to.be(null);
                         expect(payload.undefined).to.be("[undefined]");
-                        expect(payload.Error).to.be("[Error You goofed!]");
-                        expect(payload.SyntaxError).to.be("[SyntaxError I am blind.]");
                         expect(payload.Function).to.be("[function noop]");
                         expect(payload.Date).to.be("2017-08-10T17:56:19.000Z");
                         expect(payload.RegExp).to.be("/^[Hh]ello .orld$/");
                         expect(payload.Infinity).to.be("[Infinity]");
                         expect(payload.NaN).to.be("[NaN]");
+
+                        expect(payload.Error).to.eql({
+                            "name":"Error",
+                            "message":"You goofed!",
+                            "extra":"cream pie",
+                            "inner":{
+                                "name":"SyntaxError",
+                                "message":"I am blind.",
+                                "inner":{
+                                    "name":"Error",
+                                    "message":"Where's the kaboom?",
+                                    "inner":null
+                                }
+                            }
+                        });
 
                         pub.end();
                         done();
