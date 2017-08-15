@@ -5,6 +5,7 @@ var expect = require('expect.js');
 var fs = require('fs');
 var log = require('../');
 var path = require('path');
+var filterObject = require('../lib/filterObject.js');
 
 const optDescribe = (process.env.TESTALL === 'YES' ? describe : describe.skip);
 const optIt = (process.env.TESTALL === 'YES' ? it : it.skip);
@@ -290,7 +291,7 @@ describe('ssi-logger', function() {
 
     });
         
-    describe('__censorObject', function () {
+    describe('filterObject', function () {
         it('should clone the object', function () {
             const obj = {
                 hello: "world",
@@ -302,7 +303,7 @@ describe('ssi-logger', function() {
                     }
                 }
             };
-            var clone = log.__censorObject(obj, []);
+            var clone = filterObject(obj, []);
             expect(clone).not.to.be(obj);
             expect(clone.child).not.to.be(obj.child);
             expect(clone.child.child).not.to.be(obj.child.child);
@@ -321,7 +322,7 @@ describe('ssi-logger', function() {
             // Create a circular reference.
             obj.child.child.child = obj.child;
 
-            var clone = log.__censorObject(obj, []);
+            var clone = filterObject(obj, []);
             expect(clone).not.to.be(obj);
             expect(clone.child).not.to.be('[circular]');
             expect(clone.child.child).not.to.be('[circular]');
@@ -338,7 +339,7 @@ describe('ssi-logger', function() {
                     }
                 }
             };
-            var clone = log.__censorObject(obj, ['bang', /ello/]);
+            var clone = filterObject(obj, ['bang', /ello/]);
             expect(clone).not.to.be(obj);
             expect(clone.hello).to.be('[redacted]');
             expect(clone.child.child.bang).to.be('[redacted]');
@@ -365,11 +366,11 @@ describe('ssi-logger', function() {
 
             var clone;
 
-            clone = log.__censorObject(basics, []);
+            clone = filterObject(basics, []);
             expect(clone).not.to.be(basics);
             expect(clone).to.eql(basics);
 
-            clone = log.__censorObject(specials, []);
+            clone = filterObject(specials, []);
             expect(clone.null).to.be("[null]");
             expect(clone.undefined).to.be("[undefined]");
             expect(clone.Error).to.be("[Error You goofed!]");

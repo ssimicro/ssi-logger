@@ -5,6 +5,7 @@ var _ = require('lodash');
 var os = require('os');
 var util = require('util');
 var logformat = require('logformat');
+var filterObject = require('./lib/filterObject.js');
 
 var level_names = [
     'SILLY',
@@ -21,43 +22,10 @@ var level_names = [
     'EMERG',
 ];
 
-function __censorObject(obj, patterns) {
-    const objects_seen = [];
-    return _.cloneDeepWith(obj, function (value, key, obj, stack) {
-        if (value === null) {
-            return "[null]";
-        } else if (value === undefined) {
-            return "[undefined]";
-        } else if (value === Infinity) {
-            return "[Infinity]";
-        } else if (_.isNaN(value)) {
-            return "[NaN]";
-        } else if (_.isDate(value)) {
-            return value.toISOString();
-        } else if (_.isError(value)) {
-            return `[${value.name} ${value.message}]`;
-        } else if (_.isFunction(value)) {
-            return `[function ${value.name}]`;
-        } else if (_.isRegExp(value)) {
-            return `/${value.source}/`;
-        } else if (_.isObjectLike(value)) {
-             if (objects_seen.indexOf(value) !== -1) {
-                return "[circular]";
-            }
-            objects_seen.push(value);
-        } else {
-            if (_.some(patterns, (pat) => (pat instanceof RegExp && pat.test(key)) || pat === key)) {
-                return "[redacted]";
-            }
-        }
-        return undefined;
-    });
-}
-
 function log(level, message) {
     // Censor objects.
     const args = _.map(arguments.length > 1 ? _.tail(arguments) : [], function (arg) {
-        return __censorObject(arg, module.exports.censor());
+        return filterObject(arg, module.exports.censor());
     });
 
     message = util.format.apply(null, _.map(args, logformat));
@@ -127,11 +95,6 @@ module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
 module.exports.level_names = level_names;
-
-if (process.env.NODE_ENV !== 'production') {
-    // Internal unit testing.
-    module.exports.__censorObject = __censorObject;
-}
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
