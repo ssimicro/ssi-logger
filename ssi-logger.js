@@ -46,12 +46,7 @@ function __censorObject(obj, patterns) {
             }
             objects_seen.push(value);
         } else {
-            let matched = false;
-            _.forEach(patterns, function (pat) {
-                matched = (pat instanceof RegExp && pat.test(key)) || pat === key;
-                return !matched;
-            });
-            if (matched) {
+            if (_.some(patterns, (pat) => (pat instanceof RegExp && pat.test(key)) || pat === key)) {
                 return "[redacted]";
             }
         }
