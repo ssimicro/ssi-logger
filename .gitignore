@@ -1,3 +1,4 @@
 node_modules/*
 .idea
 .tern-port
+ssi-logger.conf

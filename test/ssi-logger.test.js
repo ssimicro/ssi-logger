@@ -1,6 +1,7 @@
 
 "use strict";
 
+var _ = require('lodash');
 var expect = require('expect.js');
 var fs = require('fs');
 var log = require('../');
@@ -525,9 +526,16 @@ describe('ssi-logger', function() {
     describe('amqpTransport', function () {
         process.env.NODE_ENV = 'test';
 
+        let options = {};
+        try {
+            options = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'ssi-logger.conf')).toString());
+        } catch (err) {
+            console.error(err);
+        }
+
         describe('setup', function () {
             it('should return a handler', function (done) {
-                expect(log.amqpTransport({}, (err, publisher) => publisher.end())).to.be.a('function');
+                expect(log.amqpTransport(options.amqpTransport, (err, publisher) => publisher.end())).to.be.a('function');
                 done();
             });
             it('should return a handler when no options argument', function (done) {
@@ -539,7 +547,8 @@ describe('ssi-logger', function() {
             it('should queue log message', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Say something clever.");
@@ -562,7 +571,8 @@ describe('ssi-logger', function() {
             it('should filter log messages below INFO', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.debug("Say something clever.");
@@ -580,7 +590,8 @@ describe('ssi-logger', function() {
             it('should filter log messages below ERROR', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({logLevel: 'ERROR'}, (err, publisher) => {
+                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'ERROR'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.warning("Say something clever.");
@@ -598,7 +609,8 @@ describe('ssi-logger', function() {
             it('should not filter log message ERROR or above', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({logLevel: 'ERROR', facility: 'DAEMON'}, (err, publisher) => {
+                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.error("Say something clever.");
@@ -623,7 +635,8 @@ describe('ssi-logger', function() {
             it('should have null message', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info();
@@ -644,7 +657,8 @@ describe('ssi-logger', function() {
             it('should have simple message', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Say something clever.");
@@ -663,7 +677,8 @@ describe('ssi-logger', function() {
             it('should have null message and some data', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info({"hello": "world"}, ["foo", "bar"]);
@@ -685,7 +700,8 @@ describe('ssi-logger', function() {
             it('should have simple message and some data', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
@@ -707,7 +723,8 @@ describe('ssi-logger', function() {
             it('should format printf-style message, remainder as data', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
@@ -729,7 +746,8 @@ describe('ssi-logger', function() {
             it('should append non-objects to message', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Append", "Jack", 123, 543.21, true, new Error('goofed'), {"hello": "world"}, ["foo", "bar"]);
@@ -756,7 +774,8 @@ describe('ssi-logger', function() {
 
                 const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
@@ -792,7 +811,8 @@ describe('ssi-logger', function() {
 
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Object with circular reference.", obj);
@@ -825,7 +845,8 @@ describe('ssi-logger', function() {
 
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.censor(['bang', /ello/]);
@@ -875,7 +896,8 @@ describe('ssi-logger', function() {
 
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
                     log.info("Special types and values.", basics, specials);
@@ -924,20 +946,22 @@ describe('ssi-logger', function() {
             });
         });
         optDescribe("AMQP circuit", function () {
+            this.timeout(5000);
+
             const AmqpConsume = require('./AmqpConsume');
 
             let consumer;
 
             beforeEach(function (done) {
-                consumer = new AmqpConsume({
+                consumer = new AmqpConsume(_.defaultsDeep({
                     routingKeys: [ "log.#" ],
                     queueName: '',
                     queueOptions: {
                         exclusive: true,
                         durable: false,
                         autoDelete: true
-                    },
-                });
+                    }
+                }, options.amqpTransport));
                 consumer.connect((err) => {
                     consumer.purge(done);
                 });
@@ -952,7 +976,8 @@ describe('ssi-logger', function() {
             it('should publish single log message to AMQP', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
                     log.alert("Circuit Test", {"hello": "world"}, ["foo", "bar"]);
                 });
@@ -989,7 +1014,8 @@ describe('ssi-logger', function() {
             it('should publish 3 log messages to AMQP', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
                     log.notice("Circuit Test 1", {count: 1});
                     log.notice("Circuit Test 2", {count: 2});
@@ -1028,7 +1054,8 @@ describe('ssi-logger', function() {
             it('should simulate blocked event, queue log messages until unblocked event', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
 
                     pub.conn.on('blocked', function testBlocked() {
@@ -1099,7 +1126,8 @@ describe('ssi-logger', function() {
             it('should simulate full write buffer, queue log messages, send drain event', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
 
                     pub.chan.on('drain', function testDrain() {
@@ -1173,7 +1201,8 @@ describe('ssi-logger', function() {
 
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
                     log.info("Circuit test with circular data object", obj);
                 });
@@ -1221,7 +1250,8 @@ describe('ssi-logger', function() {
 
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
                     log.censor(['bang', /ello/]);
                     log.info("Circuit test with redacted data object", obj);
@@ -1285,7 +1315,8 @@ describe('ssi-logger', function() {
 
                 let pub;
 
-                const handler = log.amqpTransport({}, (err, publisher) => {
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
                     pub = publisher;
                     log.info("Assorted data types", basics, specials);
                 });

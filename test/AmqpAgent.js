@@ -16,7 +16,7 @@ class AmqpAgent extends EventEmitter {
         }
 
         this.options = _.defaultsDeep({}, options, {
-            url: 'amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/'+process.env.USER,
+            url: 'amqp://guest:guest@localhost/',
             socketOptions: {},
             exchangeName: 'logger',
             exchangeOptions: {
