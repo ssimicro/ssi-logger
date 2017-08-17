@@ -524,11 +524,13 @@ describe('ssi-logger', function() {
     });
 
     describe('amqpTransport', function () {
-        process.env.NODE_ENV = 'test';
-
-        let options = {};
+        let options = {
+            amqpTransport: {
+                exit_ok: false,
+            }
+        };
         try {
-            options = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'ssi-logger.conf')).toString());
+            options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'ssi-logger.conf')).toString()));
         } catch (err) {
             console.error(err);
         }
@@ -1373,6 +1375,46 @@ describe('ssi-logger', function() {
                         pub.end();
                         done();
                     });
+                });
+            });
+            it('should re-queue a message if write buffer is full', function (done) {
+                let pub;
+
+                function testf(log_event) {
+                    handler(log_event);
+                }
+                process.on('log', testf);
+
+                consumer.consume(function (err, msg, next) {
+                    expect().fail('No message should have been sent.');
+                });
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    pub = publisher;
+
+                    // Similute full write buffer.
+                    pub.chan.publish = function alwaysFull() {
+                        return false;
+                    };
+
+                    expect(pub.isFlowing).to.be(true);
+                    expect(pub.queue.length).to.be(0);
+
+                    log.notice("Circuit Test 1", {count: 1});
+                    log.notice("Circuit Test 2", {count: 2});
+                    log.notice("Circuit Test 3", {count: 3});
+
+                    // 3 log messages should fail to be sent and remain in queue.
+                    expect(pub.queue.length).to.be(3);
+                    expect(pub.queue[0].payload).to.have.key('count');
+                    expect(pub.queue[0].payload.count).to.be(1);
+                    expect(pub.queue[1].payload.count).to.be(2);
+                    expect(pub.queue[2].payload.count).to.be(3);
+
+                    process.removeListener('log', testf);
+                    pub.end();
+                    done();
                 });
             });
         });

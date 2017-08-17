@@ -165,6 +165,7 @@ Here are the available transports.
   - `exchangeName`: optional exchange name where to publish log messages; default "amq.topic" (RabbitMQ installed default)
   - `logLevel`: optional log level filter, where only messages of this syslog level or higher are published; default "INFO"
   - `facility`: optional syslog facility name; default "LOCAL0"
+  - `exit_ok`: set false to disable process exit on connection error
 
 `optDone`: optional callback when connect is ready; used primarily for tests
   - `err`: an error object in case of error,
