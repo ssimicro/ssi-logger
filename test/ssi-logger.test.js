@@ -366,7 +366,7 @@ describe('ssi-logger', function() {
                 "Error": error,
                 "Function": function noop() { },
                 "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                "RegExp": /^[Hh]ello .orld$/,
+                "RegExp": /^[Hh]ello .orld$/i,
                 "Infinity": Infinity,
                 "NegInfinity": -Infinity,
                 "NaN": NaN,
@@ -383,7 +383,7 @@ describe('ssi-logger', function() {
             expect(clone.undefined).to.be("[undefined]");
             expect(clone.Function).to.be("[function noop]");
             expect(clone.Date).to.be.a(Date);
-            expect(clone.RegExp).to.be("/^[Hh]ello .orld$/");
+            expect(clone.RegExp).to.be("/^[Hh]ello .orld$/i");
             expect(clone.Infinity).to.be("[Infinity]");
             expect(clone.NegInfinity).to.be("[-Infinity]");
             expect(clone.NaN).to.be("[NaN]");
@@ -893,7 +893,7 @@ describe('ssi-logger', function() {
                     "Error": error,
                     "Function": function noop() { },
                     "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                    "RegExp": /^[Hh]ello .orld$/,
+                    "RegExp": /^[Hh]ello .orld$/i,
                     "Infinity": Infinity,
                     "NegInfinity": -Infinity,
                     "NaN": NaN,
@@ -927,7 +927,7 @@ describe('ssi-logger', function() {
                     expect(payload.undefined).to.be("[undefined]");
                     expect(payload.Function).to.be("[function noop]");
                     expect(payload.Date.toISOString()).to.be("2017-08-10T17:56:19.000Z");
-                    expect(payload.RegExp).to.be("/^[Hh]ello .orld$/");
+                    expect(payload.RegExp).to.be("/^[Hh]ello .orld$/i");
                     expect(payload.Infinity).to.be("[Infinity]");
                     expect(payload.NegInfinity).to.be("[-Infinity]");
                     expect(payload.NaN).to.be("[NaN]");
@@ -1314,7 +1314,7 @@ describe('ssi-logger', function() {
                     "Error": error,
                     "Function": function noop() { },
                     "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                    "RegExp": /^[Hh]ello .orld$/,
+                    "RegExp": /^[Hh]ello .orld$/i,
                     "Infinity": Infinity,
                     "NegInfinity": -Infinity,
                     "NaN": NaN,
@@ -1358,7 +1358,7 @@ describe('ssi-logger', function() {
                         expect(payload.undefined).to.be("[undefined]");
                         expect(payload.Function).to.be("[function noop]");
                         expect(payload.Date).to.be("2017-08-10T17:56:19.000Z");
-                        expect(payload.RegExp).to.be("/^[Hh]ello .orld$/");
+                        expect(payload.RegExp).to.be("/^[Hh]ello .orld$/i");
                         expect(payload.Infinity).to.be("[Infinity]");
                         expect(payload.NegInfinity).to.be("[-Infinity]");
                         expect(payload.NaN).to.be("[NaN]");
