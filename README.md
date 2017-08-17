@@ -155,7 +155,7 @@ Here are the available transports.
 
 ### lib/transports/amqp
 
-`amqpTransport(options [, optDone])` will log large JSON messages to an AMQP server.
+`amqpTransport(options [, optDone])` will log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `/var/tmp/$PROCESS_NAME.stack` and the process with exit by default, see `exit_ok` below.
 
 **Parameters**
 
