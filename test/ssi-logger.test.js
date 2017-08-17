@@ -368,6 +368,7 @@ describe('ssi-logger', function() {
                 "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
                 "RegExp": /^[Hh]ello .orld$/,
                 "Infinity": Infinity,
+                "NegInfinity": -Infinity,
                 "NaN": NaN,
             };
 
@@ -384,6 +385,7 @@ describe('ssi-logger', function() {
             expect(clone.Date).to.be.a(Date);
             expect(clone.RegExp).to.be("/^[Hh]ello .orld$/");
             expect(clone.Infinity).to.be("[Infinity]");
+            expect(clone.NegInfinity).to.be("[-Infinity]");
             expect(clone.NaN).to.be("[NaN]");
 
             expect(clone.Error).to.eql({
@@ -893,6 +895,7 @@ describe('ssi-logger', function() {
                     "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
                     "RegExp": /^[Hh]ello .orld$/,
                     "Infinity": Infinity,
+                    "NegInfinity": -Infinity,
                     "NaN": NaN,
                 };
 
@@ -926,6 +929,7 @@ describe('ssi-logger', function() {
                     expect(payload.Date.toISOString()).to.be("2017-08-10T17:56:19.000Z");
                     expect(payload.RegExp).to.be("/^[Hh]ello .orld$/");
                     expect(payload.Infinity).to.be("[Infinity]");
+                    expect(payload.NegInfinity).to.be("[-Infinity]");
                     expect(payload.NaN).to.be("[NaN]");
 
                     expect(payload.Error).to.eql({
@@ -1312,6 +1316,7 @@ describe('ssi-logger', function() {
                     "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
                     "RegExp": /^[Hh]ello .orld$/,
                     "Infinity": Infinity,
+                    "NegInfinity": -Infinity,
                     "NaN": NaN,
                 }
 
@@ -1355,6 +1360,7 @@ describe('ssi-logger', function() {
                         expect(payload.Date).to.be("2017-08-10T17:56:19.000Z");
                         expect(payload.RegExp).to.be("/^[Hh]ello .orld$/");
                         expect(payload.Infinity).to.be("[Infinity]");
+                        expect(payload.NegInfinity).to.be("[-Infinity]");
                         expect(payload.NaN).to.be("[NaN]");
 
                         expect(payload.Error).to.eql({
