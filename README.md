@@ -155,7 +155,7 @@ Here are the available transports.
 
 ### lib/transports/amqp
 
-`amqpTransport(options)` will log large JSON messages to an AMQP server.
+`amqpTransport(options [, optDone])` will log large JSON messages to an AMQP server.
 
 **Parameters**
 
@@ -165,6 +165,11 @@ Here are the available transports.
   - `exchangeName`: optional exchange name where to publish log messages; default "amq.topic" (RabbitMQ installed default)
   - `logLevel`: optional log level filter, where only messages of this syslog level or higher are published; default "INFO"
   - `facility`: optional syslog facility name; default "LOCAL0"
+
+`optDone`: optional callback when connect is ready; used primarily for tests
+  - `err`: an error object in case of error,
+  - `publisher`: a state object and cleanup method
+    - `end()`: terminate the AMQP channel and connection
 
 **Return**
 A `log` event handler.
