@@ -13,9 +13,6 @@ process.on('log', log.amqpTransport({
         process.exit(1);
     }
     console.log('connected');
-    process.on('SIGINT', () => {
-        amqplog.chan.emit('error', new Error('goofed!'));
-    });
 }));
 
 const obj = {
@@ -34,10 +31,20 @@ log.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, [
 
 log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, true, ["bar", "bat"], "slippery", 321);
 
-log.info("an error type", new Error("goofy"), new SyntaxError('obtuse'));
-
 setTimeout(function () {
     for (var i = 0; i < 100; i++) {
         log.debug({count: i});
     }
-}, 2000);
+
+    log.info("an error type", new Error("goofy"), new SyntaxError('obtuse'));
+
+    console.log(`
+Test 'close' event handler:
+- go RabbitMQ (dev) -> Connection
+- find your IP and click
+- bottom of IP Connection page, click Force Close button
+- check /var/tmp/node.stack
+`
+    );
+
+}, 5000);
