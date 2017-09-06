@@ -22,6 +22,12 @@ class AmqpConsume extends AmqpAgent {
 
     connect(optDone) {
         super.connect((err) => {
+            if (err) {
+                if (optDone) {
+                    optDone(err);
+                }
+                return;
+            }
             this.chan.assertQueue(this.options.queueName, this.options.queueOptions, (err, ok) => {
                 if (err) {
                     return this.bail(new Error('AMQP_CONSUME_ASSERT_QUEUE_FAIL'), optDone);
