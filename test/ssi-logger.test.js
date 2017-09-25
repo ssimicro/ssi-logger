@@ -5,6 +5,7 @@ var _ = require('lodash');
 var expect = require('expect.js');
 var fs = require('fs');
 var log = require('../');
+var os = require('os');
 var path = require('path');
 var filterObject = require('../lib/filterObject.js');
 
@@ -33,6 +34,9 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
+                expect(obj).to.have.key('created');
+                expect(obj.host).to.be(os.hostname());
+                expect(obj.data).to.be.an(Array);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(message);
                 done();
@@ -45,6 +49,8 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
+                expect(obj).to.have.key('created');
+                expect(obj.host).to.be(os.hostname());
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(message+' hello=world 1234');
                 expect(obj.data).to.be.an(Array);
@@ -114,6 +120,9 @@ describe('ssi-logger', function() {
 
             process.on('log', function testfx(obj) {
                 process.removeListener('log', testfx);
+                expect(obj).to.have.key('created');
+                expect(obj.host).to.be(os.hostname());
+                expect(obj.data).to.be.an(Array);
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(message + ' request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar');
                 done();
@@ -128,6 +137,8 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
+                expect(obj).to.have.key('created');
+                expect(obj.host).to.be(os.hostname());
                 expect(obj.level).to.be(level);
                 expect(obj.message).to.be(message+' hello=world 1234 request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar');
                 expect(obj.data).to.be.an(Array);
