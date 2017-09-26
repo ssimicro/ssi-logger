@@ -647,13 +647,14 @@ describe('ssi-logger', function() {
             });
         });
         describe('payload preparation', function () {
-            it('should have null message', function (done) {
+            it('should have empty message', function (done) {
                 let pub;
 
                 const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
                     expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
+                    // Log message with no arguments.
                     log.info();
                 });
 
@@ -664,7 +665,9 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_metadata.level).to.be('INFO');
                     expect(payload.log_metadata.facility).to.be('LOCAL0');
-                    expect(payload.log_message).to.be(null);
+                    // When no log() arguments, use the previously formatted
+                    // message, which in this case is the empty string.
+                    expect(payload.log_message).to.be('');
                     expect(payload).to.only.have.keys('log_message', 'log_metadata');
                     done();
                 });
