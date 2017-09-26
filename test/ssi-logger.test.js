@@ -34,6 +34,7 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
+                expect(obj).to.have.key('version');
                 expect(obj).to.have.key('created');
                 expect(obj.host).to.be(os.hostname());
                 expect(obj.data).to.be.an(Array);
@@ -49,6 +50,7 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
+                expect(obj).to.have.key('version');
                 expect(obj).to.have.key('created');
                 expect(obj.host).to.be(os.hostname());
                 expect(obj.level).to.be(level);
@@ -120,6 +122,7 @@ describe('ssi-logger', function() {
 
             process.on('log', function testfx(obj) {
                 process.removeListener('log', testfx);
+                expect(obj).to.have.key('version');
                 expect(obj).to.have.key('created');
                 expect(obj.host).to.be(os.hostname());
                 expect(obj.data).to.be.an(Array);
@@ -137,6 +140,7 @@ describe('ssi-logger', function() {
 
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
+                expect(obj).to.have.key('version');
                 expect(obj).to.have.key('created');
                 expect(obj.host).to.be(os.hostname());
                 expect(obj.level).to.be(level);
@@ -647,14 +651,13 @@ describe('ssi-logger', function() {
             });
         });
         describe('payload preparation', function () {
-            it('should have empty message', function (done) {
+            it('should have null message', function (done) {
                 let pub;
 
                 const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
                     expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
-                    // Log message with no arguments.
                     log.info();
                 });
 
@@ -665,9 +668,7 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_metadata.level).to.be('INFO');
                     expect(payload.log_metadata.facility).to.be('LOCAL0');
-                    // When no log() arguments, use the previously formatted
-                    // message, which in this case is the empty string.
-                    expect(payload.log_message).to.be('');
+                    expect(payload.log_message).to.be(null);
                     expect(payload).to.only.have.keys('log_message', 'log_metadata');
                     done();
                 });

@@ -57,6 +57,7 @@ function log(level, message) {
     // the machine has a proper DNS A record.
 
     process.emit('log', {
+        version: '1.0.0',
         created: new Date(),
         host: os.hostname(),
         level: level,
