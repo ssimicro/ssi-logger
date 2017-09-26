@@ -353,4 +353,4 @@ As well as several manual tests:
 
 ## License
 
-See [LICENSE.md](https://github.com/ssimicro/ssi-logger/blob/master/LICENCE.md).
+See [LICENSE.md](https://github.com/ssimicro/ssi-logger/blob/master/LICENSE.md).
