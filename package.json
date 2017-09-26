@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "pretest": "jshint *.js",
+    "pretest": "jshint *.js lib",
     "test": "mocha -R spec test/*.test.js"
   },
   "repository": {
