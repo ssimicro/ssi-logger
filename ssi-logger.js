@@ -28,6 +28,12 @@ function log(level, message) {
         return filterObject(arg, module.exports.censor());
     });
 
+    // Map level synonyms.
+    switch (level) {
+    case 'ERR': level = 'ERROR'; break;
+    case 'WARNING': level = 'WARN'; break;
+    }
+
     message = util.format.apply(null, _.map(args, logformat));
 
     // Censor any key=value pairs appearing in the formatted message.

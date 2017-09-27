@@ -64,6 +64,36 @@ describe('ssi-logger', function() {
 
             log(level, message, {hello: "world"}, 1234);
         });
+
+        it('should treat level ERR as synonym for ERROR', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj).to.have.key('version');
+                expect(obj).to.have.key('created');
+                expect(obj.host).to.be(os.hostname());
+                expect(obj.data).to.be.an(Array);
+                expect(obj.level).to.be('ERROR');
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log('ERR', message);
+        });
+
+        it('should treat level WARNING as synonym for WARN', function (done) {
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj).to.have.key('version');
+                expect(obj).to.have.key('created');
+                expect(obj.host).to.be(os.hostname());
+                expect(obj.data).to.be.an(Array);
+                expect(obj.level).to.be('WARN');
+                expect(obj.message).to.be(message);
+                done();
+            });
+
+            log('WARNING', message);
+        });
     });
 
     describe('convience', function () {
@@ -644,6 +674,56 @@ describe('ssi-logger', function() {
 
                     const payload = pub.queue[0].payload;
                     expect(payload.log_metadata.level).to.be('ERROR');
+                    expect(payload.log_metadata.facility).to.be('DAEMON');
+                    expect(payload.log_message).to.be("Say something clever.");
+                    done();
+                });
+            });
+
+            it('should not filter log message ERR (ERROR) or above', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.err("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_metadata.level).to.be('ERROR');
+                    expect(payload.log_metadata.facility).to.be('DAEMON');
+                    expect(payload.log_message).to.be("Say something clever.");
+                    done();
+                });
+            });
+
+            it('should not filter log message WARNING (WARN) or above', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'WARN', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.warning("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_metadata.level).to.be('WARN');
                     expect(payload.log_metadata.facility).to.be('DAEMON');
                     expect(payload.log_message).to.be("Say something clever.");
                     done();
