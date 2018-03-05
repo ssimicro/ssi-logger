@@ -577,7 +577,7 @@ describe('ssi-logger', function() {
             }
         };
         try {
-            options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'ssi-logger.conf')).toString()));
+            options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
         } catch (err) {
             console.error(err);
         }

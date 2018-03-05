@@ -1,0 +1,5 @@
+{
+    "amqpTransport": {
+        "url": "amqp://guest:guest@localhost/"
+    }
+}
