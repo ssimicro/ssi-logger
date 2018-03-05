@@ -340,9 +340,18 @@ Example:
 
 ## Testing
 
+This only needs to be done once in order to configure the `amqpTransport` tests:
+
+    npm run preinstall
+    vi test/ssi-logger.conf             # edit credentials
+
 There is an automated test suite:
 
     npm test
+
+There are several optional tests that can be run with:
+
+    npm run testall
 
 As well as several manual tests:
 
@@ -350,6 +359,7 @@ As well as several manual tests:
     node manual-colors-test.js
     node manual-colors-test.js --no-color
     node manual-test.js && tail /var/log/local5.log
+    node manual-amqp.js
 
 ## License
 

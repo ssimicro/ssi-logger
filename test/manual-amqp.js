@@ -40,7 +40,7 @@ setTimeout(function () {
 
     console.log(`
 Test 'close' event handler:
-- go RabbitMQ (dev) -> Connection
+- go RabbitMQ (developers) -> Connections
 - find your IP and click
 - bottom of IP Connection page, click Force Close button
 - check /var/tmp/node.stack
