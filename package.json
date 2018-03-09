@@ -7,8 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "preinstall": "test -e test/ssi-logger.conf || cp test/ssi-logger.conf.example test/ssi-logger.conf",
-    "pretest": "jshint *.js lib",
+    "pretest": "test -e test/ssi-logger.conf || cp test/ssi-logger.conf.example test/ssi-logger.conf; jshint *.js lib",
     "test": "mocha -R spec test/*.test.js",
     "testall": "TESTALL=YES mocha -R spec test/*.test.js"
   },
