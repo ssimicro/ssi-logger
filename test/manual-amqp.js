@@ -1,14 +1,22 @@
 "use strict";
 
+const _ = require('lodash');
+const fs = require('fs');
 const log = require('../');
+const path = require('path');
 
 process.on('log', log.consoleTransport(true, true));
 //process.on('log', log.amqpTransport({logLevel: 'DEBUG'}));
 //process.on('log', log.amqpTransport());
 
-process.on('log', log.amqpTransport({
-    "url": "amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/omicron",
-}, (err, amqplog) => {
+var options = {};
+try {
+    options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
+} catch (err) {
+    console.error(err);
+}
+
+process.on('log', log.amqpTransport(options.amqpTransport, (err, amqplog) => {
     if (err) {
         process.exit(1);
     }
