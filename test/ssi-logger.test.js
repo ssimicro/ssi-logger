@@ -582,7 +582,18 @@ describe('ssi-logger', function() {
             console.error(err);
         }
 
-        describe('setup', function () {
+        describe('connect', function () {
+            this.timeout(5000);
+
+            it('should fail for invalid credentials', function (done) {
+                log.amqpTransport({
+                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com'
+                }, (err, publisher) => {
+                    expect(err).not.to.be(null);
+                    expect(err).to.be.an(Error);
+                    done();
+                });
+            });
             it('should return a handler', function (done) {
                 expect(log.amqpTransport(options.amqpTransport, (err, publisher) => publisher.end())).to.be.a('function');
                 done();
@@ -591,7 +602,85 @@ describe('ssi-logger', function() {
                 expect(log.amqpTransport((err, publisher) => publisher.end())).to.be.a('function');
                 done();
             });
+            it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
+                log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+
+                    producer.on('error', (err) => {
+                        expect(err).not.be(null);
+                        expect(producer.conn).to.be(null);
+                        done();
+                    });
+
+                    producer.bail(new Error('error triggered by test'));
+                });
+            });
+            it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
+                log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    const conn_before = producer.conn;
+                    producer.bail(new Error('error triggered by test'));
+
+                    setTimeout(() => {
+                        expect(producer.conn).not.to.be(null);
+                        expect(producer.conn).not.to.be(conn_before);
+                        producer.end();
+                        done();
+                    }, 2000);
+                });
+            });
+            it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
+                log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    producer.closed();
+                    expect(producer.conn).to.be(null);
+                    done();
+                });
+            });
+            it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
+                log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    producer.closed();
+                    expect(producer.conn).to.be(null);
+                    done();
+                });
+            });
+            it('should reconnect on closed error when reconnect.retryTimeout > 0', function (done) {
+                log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    const conn_before = producer.conn;
+
+                    producer.closed(new Error('error triggered by test'));
+
+                    setTimeout(() => {
+                        expect(producer.conn).not.to.be(null);
+                        expect(producer.conn).not.to.be(conn_before);
+                        producer.end();
+                        done();
+                    }, 2000);
+                });
+            });
+            it('should retry reconnection until reconnect.retryTimeout reached', function (done) {
+                log.amqpTransport({
+                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
+                    reconnect: {
+                        retryTimeout: 2,
+                        retryDelay: 1,
+                    }
+                }, (err, producer) => {
+                    expect(err).not.to.be(null);
+
+                    producer.once('error', (err) => {
+                        expect(err.attempts).to.be(2);
+                        producer.end();
+                        done();
+                    });
+
+                    producer.bail(new Error('error triggered by test'));
+                });
+            });
         });
+
         describe('queue', function () {
             it('should queue log message', function (done) {
                 let pub;
@@ -1046,7 +1135,7 @@ describe('ssi-logger', function() {
                 });
             });
         });
-        optDescribe("AMQP circuit", function () {
+        describe("AMQP circuit", function () {
             this.timeout(5000);
 
             const AmqpConsume = require('./AmqpConsume');
@@ -1074,6 +1163,29 @@ describe('ssi-logger', function() {
                 done();
             });
 
+            it('should queue 3 messages', function (done) {
+                const handler = log.amqpTransport(options.amqpTransport, (err, producer) => {
+                    expect(err).to.be(null);
+                    producer.end();
+
+                    let log_count = 0;
+                    process.on('log', function testf(log_event) {
+                        handler(log_event);
+                        if (++log_count === 3) {
+                            process.removeListener('log', testf);
+                            expect(producer.queue.length).to.be(3);
+                            done();
+                        }
+                    });
+
+                    // Disable drain.
+                    producer.isFlowing = false;
+
+                    log.info("heaven");
+                    log.info("world");
+                    log.info("hell");
+                });
+            });
             it('should publish single log message to AMQP', function (done) {
                 let pub;
 
@@ -1152,6 +1264,34 @@ describe('ssi-logger', function() {
                     });
                 });
             });
+            it('should queue messages after a blocked event until an unblocked event', function (done) {
+                const handler = log.amqpTransport(options.amqpTransport, (err, producer) => {
+                    expect(err).to.be(null);
+
+                    process.on('log', function testf(log_event) {
+                        handler(log_event);
+
+                        consumer.consume(function (err, msg, next) {
+                            next(null);
+                            if (msg.fields.deliveryTag === 3) {
+                                process.removeListener('log', testf);
+                                producer.end();
+                                done();
+                            }
+                        });
+                    });
+
+                    producer.conn.emit('blocked');
+                    expect(producer.queue.length).to.be(0);
+
+                    log.info("message 1");
+                    log.info("message 2");
+                    log.info("message 3");
+
+                    expect(producer.queue.length).to.be(3);
+                    producer.conn.emit('unblocked');
+                });
+            });
             it('should simulate blocked event, queue log messages until unblocked event', function (done) {
                 let pub;
 
@@ -1224,20 +1364,12 @@ describe('ssi-logger', function() {
                     });
                 });
             });
-            it('should simulate full write buffer, queue log messages, send drain event', function (done) {
+            it('should simulate full write buffer, queue log messages, then manual drain', function (done) {
                 let pub;
 
                 const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
                     expect(err).to.be(null);
                     pub = publisher;
-
-                    pub.chan.on('drain', function testDrain() {
-                        pub.chan.removeListener('drain', testDrain);
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log('drain');
-                        }
-                        expect(pub.queue.length).to.be(0);
-                   });
 
                     // 1. Simulate full write buffer, force queuing.
                     pub.isFlowing = false;
@@ -1255,7 +1387,7 @@ describe('ssi-logger', function() {
                     if (++log_count === 3) {
                         // 3. Drain the message queue.
                         expect(pub.queue.length).to.be(3);
-                        pub.chan.emit('drain');
+                        pub.drainQueue();
                     }
 
                     consumer.consume(function (err, msg, next) {
@@ -1478,44 +1610,93 @@ describe('ssi-logger', function() {
                     });
                 });
             });
-            it('should re-queue a message if write buffer is full', function (done) {
-                let pub;
-
-                function testf(log_event) {
-                    handler(log_event);
-                }
-                process.on('log', testf);
-
-                consumer.consume(function (err, msg, next) {
-                    expect().fail('No message should have been sent.');
-                });
-
-                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+            it('should continue sending messages after an error and reconnect', function (done) {
+                const handler = log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
                     expect(err).to.be(null);
-                    pub = publisher;
+                    const conn_before = producer.conn;
 
-                    // Similute full write buffer.
-                    pub.chan.publish = function alwaysFull() {
-                        return false;
-                    };
+                    process.on('log', function testf(log_event) {
+                        handler(log_event);
 
-                    expect(pub.isFlowing).to.be(true);
-                    expect(pub.queue.length).to.be(0);
+                        consumer.consume(function (err, msg, next) {
+                            next(null);
+                            if (msg.fields.deliveryTag === 3) {
+                                process.removeListener('log', testf);
+                                expect(producer.conn).not.to.be(null);
+                                expect(producer.conn).not.to.be(conn_before);
+                                producer.end();
+                                done();
+                            }
+                        });
+                    });
 
-                    log.notice("Circuit Test 1", {count: 1});
-                    log.notice("Circuit Test 2", {count: 2});
-                    log.notice("Circuit Test 3", {count: 3});
+                    log.info("message 1");
 
-                    // 3 log messages should fail to be sent and remain in queue.
-                    expect(pub.queue.length).to.be(3);
-                    expect(pub.queue[0].payload).to.have.key('count');
-                    expect(pub.queue[0].payload.count).to.be(1);
-                    expect(pub.queue[1].payload.count).to.be(2);
-                    expect(pub.queue[2].payload.count).to.be(3);
+                    producer.bail(new Error('error triggered by test'));
 
-                    process.removeListener('log', testf);
-                    pub.end();
-                    done();
+                    log.info("message 2");
+                    log.info("message 3");
+                });
+            });
+            it('should continue sending messages after a closed error and reconnect', function (done) {
+                const handler = log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    const conn_before = producer.conn;
+
+                    process.on('log', function testf(log_event) {
+                        handler(log_event);
+
+                        consumer.consume(function (err, msg, next) {
+                            next(null);
+                            if (msg.fields.deliveryTag === 3) {
+                                process.removeListener('log', testf);
+                                expect(producer.conn).not.to.be(null);
+                                expect(producer.conn).not.to.be(conn_before);
+                                producer.end();
+                                done();
+                            }
+                        });
+                    });
+
+                    log.info("message 1");
+
+                    producer.closed(new Error('error triggered by test'));
+
+                    log.info("message 2");
+                    log.info("message 3");
+                });
+            });
+            it('should reconnect if necessary when flushing queue', function (done) {
+                const handler = log.amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    const conn_before = producer.conn;
+
+                    process.on('log', function testf(log_event) {
+                        handler(log_event);
+
+                        consumer.consume(function (err, msg, next) {
+                            next(null);
+
+                            // Nuking producer.chan.publish throws an error, loosing a message.
+                            if (msg.fields.deliveryTag === 2) {
+                                process.removeListener('log', testf);
+                                expect(producer.conn).to.be(null);
+                                done();
+                            }
+                        });
+                    });
+
+                    // Queue some messages.
+                    producer.conn.emit('blocked');
+                    log.info("message 1");
+                    log.info("message 2");
+                    log.info("message 3");
+
+                    // Simulate reconnect during flush, looses first message.
+                    producer.chan.publish = null;
+
+                    // Flush and close.
+                    producer.end();
                 });
             });
         });
