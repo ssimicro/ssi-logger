@@ -155,22 +155,32 @@ Here are the available transports.
 
 ### lib/transports/amqp
 
-`amqpTransport(options [, optDone])` will log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `/var/tmp/$PROCESS_NAME.stack` and the process with exit by default, see `exit_ok` below.
+`amqpTransport(options [, done])` will log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `$TMPDIR/$PROCESS_NAME.stack` and attempt to reconnect if so configured.  If  `$TMPDIR` is undefined, the default is `/var/tmp`.
 
 **Parameters**
 
 `options`:
-  - `url`: optional URL; default `amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/omicron`,
+  - `url`: an AMQP url, eg. `amqp://guest:guest@localhost/`,
   - `socketOptions`: optional object of socket options; default `{}`
-  - `exchangeName`: optional exchange name where to publish log messages; default "amq.topic" (RabbitMQ installed default)
-  - `logLevel`: optional log level filter, where only messages of this syslog level or higher are published; default "INFO"
-  - `facility`: optional syslog facility name; default "LOCAL0"
-  - `exit_ok`: set false to disable process exit on connection error
+    * `noDelay` sets `TCP_NODELAY` (booloan).
+    * `cert` client certificate (buffer).
+    * `key` client key (buffer).
+    * `passphrase` - passphrase for private key
+    * `ca` - array of CA certificates (array of buffer).
+  - `exchangeName`: optional exchange name where to publish log messages; default `logger`
+  - `exchangeOptions`: options for the exchange.
+    * `durable`: exchange persists across server restarts; default `true`.
+    * `autoDelete`: exchange deletes itself when there are no bindings; default `false`.
+  - `reconnect`: options for re-connection:
+    * `retryTimeout`: how long in seconds to continue attempting re-connections before emitting an `error` event; default 0.
+    * `retryDelay`: how long in seconds to wait between re-connection attempts; default 5.
+  - `logLevel`: optional log level filter, where only messages of this syslog level or higher are published; default `INFO`
+  - `facility`: optional syslog facility name; default `LOCAL0`
 
-`optDone`: optional callback when connect is ready; used primarily for tests
+`done`: optional callback when connection is ready; used primarily for tests
   - `err`: an error object in case of error,
-  - `publisher`: a state object and cleanup method
-    - `end()`: terminate the AMQP channel and connection
+  - `publisher`: an AMQP publisher object.
+    * `end()`: terminate the AMQP channel and connection
 
 **Return**
 A `log` event handler.
@@ -178,7 +188,7 @@ A `log` event handler.
 Example:
 
     process.on('log', log.amqpTransport({
-        url: 'amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/virtual_host',
+        url: 'amqp://guest:somepassword@example.com/virtual_host',
         exchangeName: 'logger'
     }));
 
