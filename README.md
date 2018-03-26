@@ -215,7 +215,7 @@ to be prepended to all console messages. When not supplied, `timestamp` defaults
 
 ### lib/transports/syslog ###
 
-`syslogTransport(log_facility[, mask])` logs messages to the system log using the specified `log_facility` (e.g.
+`syslogTransport(facility[, mask])` logs messages to the system log using the specified `facility` (e.g.
 `LOG_LOCAL5`, `LOG_SYSLOG`, `LOG_USER`). The `mask` parameter will set the minimum logging level (e.g. `INFO`,
 `DEBUG`, `ERR`, etc). If `mask` is not specified, the default value is `INFO`. For legacy
 compatibility, a value of `true` sets `mask` to `DEBUG`.
