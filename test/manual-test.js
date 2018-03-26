@@ -7,14 +7,12 @@
 
 var log = require('../');
 
-var facility = "LOG_LOCAL5";
-var debug = true;
-var verbose = true;
+var options = {
+    syslog: {enable: true, facility: "LOG_LOCAL5", mask: true},
+    console: {enable: true, timestamp: true},
+};
 
-process.on('log', log.syslogTransport(facility, debug));
-if (verbose) {
-    process.on('log', log.consoleTransport());
-}
+log.configureTransports(options);
 
 log('INFO', 'This should go to the console and syslog.');
 

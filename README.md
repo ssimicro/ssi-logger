@@ -47,6 +47,33 @@ Basic Usage:
     log('INFO', 'Hello, World!');
     // emits ---> { level: 'INFO', message: 'Hello, World!' }
 
+
+Multiple Transports:
+
+    // Logging defaults.
+    var options = {
+        logger: {
+            syslog: {facility: "LOG_LOCAL5", mask: true},
+            console: {timestamp: true},
+        }
+    };
+    
+    ...
+    
+    // Enable different transports depending on NODE_ENV.
+    _.defaultsDeep(options, {
+        logger: {
+            amqp: {enable: process.env.NODE_ENV === 'production'},
+            console: {enable: process.env.NODE_ENV !== 'production'},
+            syslog: {enable: process.env.NODE_ENV !== 'production'},
+        }
+    });
+    
+    log.configureTransports(options.logger);
+    
+    log.info('Ready to rock!');
+
+
 Multiple message arguments:
 
     log('INFO', 'Hello,', 'World!');
@@ -137,14 +164,31 @@ Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO
 Log messages are emitted as `log` events. Event listeners should be installed to receive the events and send them over
 the appropriate transport. SSi Logger provides a couple of common transports.
 
-Here's an example of the standard usage where logs go to syslog. Depending on the value of `mask`, log messages may or
-may not go to syslog. Here, 'INFO' means that log messages with levels up to 'INFO' are logged (i.e. 'DEBUG' messages are
-not logged). If `verbose` is `true`, logs also go to the console.
+Here's a setup example for a project using multiple transports to log messages.  Depending on the value of `mask` or `logLevel`, log messages may or may not go to syslog or AMQP.  Here `INFO` means that log messages with levels up to and including `INFO` are logged, i.e. `DEBUG` messages are not logged; likewise up to and including `ERROR`, would exclude `INFO` and `DEBUG`.
 
-    process.on('log', log.syslogTransport(facility, mask)); // facility='LOG_LOCAL5', mask='INFO'
-    if (verbose) {
-        process.on('log', log.consoleTransport());
-    }
+    // Logging defaults.
+    var options = {
+        logger: {
+            amqp: {url: "amqp://user:password@example.com/virt_host", logLevel: "ERROR"},
+            syslog: {facility: "LOG_LOCAL5", mask: "INFO"},
+            console: {timestamp: true},
+        }
+    };
+    
+    ...
+    
+    // Enable different transports depending on NODE_ENV.
+    _.defaultsDeep(options, {
+        logger: {
+            amqp: {enable: process.env.NODE_ENV === 'production'},
+            console: {enable: process.env.NODE_ENV !== 'production'},
+            syslog: {enable: process.env.NODE_ENV !== 'production'},
+        }
+    });
+    
+    log.configureTransports(options.logger);
+    
+    log.info('Ready to rock!');
 
 This is a very powerful pattern. It allows for many different combinations of actions. For example, one could write
 a transport such that a LOG_ALERT message about the database being down will trigger an e-mail to go out to the sysadmin.

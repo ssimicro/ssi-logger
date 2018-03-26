@@ -97,11 +97,22 @@ function defaults() {
     return defaultLog;
 }
 
+// Install a transport if options contains a property with a name
+// that matches a known transport and has `enable` set to `true`.
+function configureTransports(options) {
+    _.forEach(options, (args, transport) => {
+        if (_.isObject(args) && _.get(args, 'enable', false) === true && _.has(transports, transport)) {
+            process.on('log', transports[transport](args));
+        }
+    });
+}
+
 // Public API
 module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
 module.exports.level_names = level_names;
+module.exports.configureTransports = configureTransports;
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
@@ -113,9 +124,16 @@ function addConvenienceFunctions(logger) {
 
 addConvenienceFunctions(module.exports);
 
-// Various transports...
+// Export various transports...
 module.exports.amqpTransport = require('./lib/transports/amqp');
 module.exports.consoleTransport = require('./lib/transports/console');
 module.exports.streamTransport = require('./lib/transports/stream');
 module.exports.syslogTransport = require('./lib/transports/syslog');
+
+const transports = {
+   amqp: module.exports.amqpTransport,
+   console: module.exports.consoleTransport,
+   stream: module.exports.streamTransport,
+   syslog: module.exports.syslogTransport,
+};
 
