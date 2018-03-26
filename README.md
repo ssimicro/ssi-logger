@@ -155,7 +155,9 @@ Here are the available transports.
 
 ### lib/transports/amqp
 
-`amqpTransport(options [, done])` will log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `$TMPDIR/$PROCESS_NAME.stack` and attempt to reconnect if so configured.  If  `$TMPDIR` is undefined, the default is `/var/tmp`.
+* `amqpTransport(options [, done])`
+
+Log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `$TMPDIR/$PROCESS_NAME.stack` and attempt to reconnect if so configured.  If  `$TMPDIR` is undefined, the default is `/var/tmp`.
 
 **Parameters**
 
@@ -195,7 +197,10 @@ Example:
 
 ### lib/transports/console
 
-`consoleTransport(color, timestamp, stderr)` logs all messages to the console in the form "[level] message". The `color`
+* `consoleTransport(color, timestamp, stderr)`
+* `consoleTransport({color: ..., timestamp: ..., stderr: ...})`
+
+Logs all messages to the console in the form "[level] message". The `color`
 parameter is a boolean to enable or disable color coded log messages. When not supplied, `color` defaults to
 `true`. Colors can also be disabled at runtime with the `--no-color` command line option. The `timestamp`
 parameter causes an ISO 8601 format timestamp to be prepended to all console messages. If the `stderr` parameter is
@@ -205,7 +210,10 @@ parameter causes an ISO 8601 format timestamp to be prepended to all console mes
 
 ### lib/transports/stream ###
 
-`streamTransport(stream, color, timestamp` writes messages to the `stream`, one per line, in the form
+* `streamTransport(stream, color, timestamp)`
+* `streamTransport({stream: ..., color: ..., timestamp: ...})`
+
+Writes messages to the `stream`, one per line, in the form
 "[level] message". The `color` parameter is a boolean to enable or disable color coded log messages.
 When not supplied, `color` defaults to `false`. Colors can also be disabled at runtime with the
 `--no-color` command line option.  The `timestamp` parameter causes an ISO 8601 format timestamp
@@ -215,7 +223,10 @@ to be prepended to all console messages. When not supplied, `timestamp` defaults
 
 ### lib/transports/syslog ###
 
-`syslogTransport(facility[, mask])` logs messages to the system log using the specified `facility` (e.g.
+* `syslogTransport(facility[, mask])`
+* `syslogTransport({facility: ..., mask: ...})`
+
+Logs messages to the system log using the specified `facility` (e.g.
 `LOG_LOCAL5`, `LOG_SYSLOG`, `LOG_USER`). The `mask` parameter will set the minimum logging level (e.g. `INFO`,
 `DEBUG`, `ERR`, etc). If `mask` is not specified, the default value is `INFO`. For legacy
 compatibility, a value of `true` sets `mask` to `DEBUG`.
