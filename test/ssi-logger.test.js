@@ -570,7 +570,7 @@ describe('ssi-logger', function() {
         });
     });
 
-    describe('amqpTransport', function () {
+    optDescribe('amqpTransport', function () {
         let options = {
             amqpTransport: {
                 exit_ok: false,
