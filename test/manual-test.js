@@ -8,8 +8,8 @@
 var log = require('../');
 
 var options = {
-    syslog: {enable: true, facility: "LOG_LOCAL5", mask: true},
-    console: {enable: true, timestamp: true},
+    syslog: {facility: "LOG_LOCAL5", level: "DEBUG"},
+    console: {timestamp: true},
 };
 
 log.configureTransports(options);

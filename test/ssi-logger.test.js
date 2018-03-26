@@ -728,7 +728,7 @@ describe('ssi-logger', function() {
             it('should filter log messages below ERROR', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'ERROR'}, options.amqpTransport), (err, publisher) => {
+                const handler = log.amqpTransport(_.defaultsDeep({level: 'ERROR'}, options.amqpTransport), (err, publisher) => {
                     expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
@@ -747,7 +747,7 @@ describe('ssi-logger', function() {
             it('should not filter log message ERROR or above', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                const handler = log.amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
                     expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
@@ -772,7 +772,7 @@ describe('ssi-logger', function() {
             it('should not filter log message ERR (ERROR) or above', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                const handler = log.amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
                     expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
@@ -797,7 +797,7 @@ describe('ssi-logger', function() {
             it('should not filter log message WARNING (WARN) or above', function (done) {
                 let pub;
 
-                const handler = log.amqpTransport(_.defaultsDeep({logLevel: 'WARN', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                const handler = log.amqpTransport(_.defaultsDeep({level: 'WARN', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
                     expect(err).to.be(null);
                     publisher.end();
                     pub = publisher;
