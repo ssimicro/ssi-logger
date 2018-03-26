@@ -101,7 +101,7 @@ function defaults() {
 // that matches a known transport and has `enable` set to `true`.
 function configureTransports(options) {
     _.forEach(options, (args, transport) => {
-        if (_.isObject(args) && _.get(args, 'enable', false) === true && _.has(transports, transport)) {
+        if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(transports, transport)) {
             process.on('log', transports[transport](args));
         }
     });
