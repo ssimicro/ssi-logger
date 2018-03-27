@@ -885,6 +885,27 @@ describe('ssi-logger', function() {
                     done();
                 });
             });
+            it('should take an Error like first argument as the log message and name', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info({name: 'ERROR_NAME', message: 'an error message'});
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload).to.only.have.keys('log_message', 'log_metadata', 'log_name');
+                    expect(payload.log_message).to.be('an error message');
+                    expect(payload.log_name).to.be("ERROR_NAME");
+                    done();
+                });
+            });
             it('should have simple message and some data', function (done) {
                 let pub;
 
