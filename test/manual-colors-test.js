@@ -3,7 +3,7 @@
 var log = require('../');
 
 function genLogs(color, timestamp) {
-    var logger = log.consoleTransport(color, timestamp);
+    var logger = log.consoleTransport({color: color, timestamp: timestamp});
     process.on('log', logger);
     var levels = [ 'EMERG', 'ALERT', 'CRIT', 'ERR', 'WARNING', 'NOTICE', 'INFO', 'DEBUG' ];
     for (var i = 0; i < levels.length; i++) {

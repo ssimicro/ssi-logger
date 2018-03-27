@@ -5,9 +5,7 @@ const fs = require('fs');
 const log = require('../');
 const path = require('path');
 
-process.on('log', log.consoleTransport(true, true));
-//process.on('log', log.amqpTransport({logLevel: 'DEBUG'}));
-//process.on('log', log.amqpTransport());
+process.on('log', log.consoleTransport({color: true, timestamp: true}));
 
 var options = {};
 try {
