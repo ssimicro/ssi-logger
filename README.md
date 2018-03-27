@@ -38,36 +38,12 @@ which can be displayed/returned to the user if desired.
 
 Basic Usage:
 
-    var log = require('ssi-logger');
-
-    // install some transports
-    process.on('log', log.syslogTransport('LOG_LOCAL5', 'INFO'));
-    process.on('log', log.consoleTransport());
-
-    log('INFO', 'Hello, World!');
-    // emits ---> { level: 'INFO', message: 'Hello, World!' }
-
-
-Multiple Transports:
-
-    // Logging defaults.
     var options = {
         logger: {
-            syslog: {facility: "LOG_LOCAL5", mask: true},
+            syslog: {facility: "LOG_LOCAL5", level: "DEBUG"},
             console: {timestamp: true},
         }
     };
-    
-    ...
-    
-    // Enable different transports depending on NODE_ENV.
-    _.defaultsDeep(options, {
-        logger: {
-            amqp: {enable: process.env.NODE_ENV === 'production'},
-            console: {enable: process.env.NODE_ENV !== 'production'},
-            syslog: {enable: process.env.NODE_ENV !== 'production'},
-        }
-    });
     
     log.configureTransports(options.logger);
     
@@ -98,8 +74,8 @@ With censorship:
         /pass(word)?/  // and/or regular expressions
     ]);
 
-    process.on('log', log.syslogTransport('LOG_LOCAL5', 'INFO'));
-    process.on('log', log.consoleTransport());
+    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL5', level: 'INFO'}));
+    process.on('log', log.consoleTransport({}));
 
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
     // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted]' }
@@ -125,7 +101,7 @@ Logging to a file with daily log rotation:
         verbose: false,
         date_format: 'YYYY-MM-DD'
     });
-    process.on('log', log.streamTransport(logfile));
+    process.on('log', log.streamTransport({stream: logfile}));
 
     log('INFO', 'This message gets logged to a file');
 
@@ -157,20 +133,23 @@ Convience methods:
     log.alert('/dev/lp0 on fire!');
     // emits ---> { level: 'ALERT', message: '/dev/lp0 on fire!' }
 
-Standard Log Levels: `EMERG`, `ALERT`, `CRIT`, `ERR`, `WARNING`, `NOTICE`, `INFO`, `DEBUG`
+Standard Log Levels (highest to lowest):
+
+    EMERG, ALERT, CRIT, ERROR, WARN, NOTICE, INFO, DEBUG
+
 
 ## Transports
 
 Log messages are emitted as `log` events. Event listeners should be installed to receive the events and send them over
 the appropriate transport. SSi Logger provides a couple of common transports.
 
-Here's a setup example for a project using multiple transports to log messages.  Depending on the value of `mask` or `logLevel`, log messages may or may not go to syslog or AMQP.  Here `INFO` means that log messages with levels up to and including `INFO` are logged, i.e. `DEBUG` messages are not logged; likewise up to and including `ERROR`, would exclude `INFO` and `DEBUG`.
+Here's a setup example for a project using multiple transports to log messages.  Depending on the value of `level` or `logLevel`, log messages may or may not go to syslog or AMQP.  Here `INFO` means that log messages with levels up to and including `INFO` are logged, i.e. `DEBUG` messages are not logged; likewise up to and including `ERROR`, would exclude `INFO` and `DEBUG`.
 
     // Logging defaults.
     var options = {
         logger: {
-            amqp: {url: "amqp://user:password@example.com/virt_host", logLevel: "ERROR"},
-            syslog: {facility: "LOG_LOCAL5", mask: "INFO"},
+            amqp: {url: "amqp://user:password@example.com/virt_host", facility: "LOG_USER", level: "ERROR"},
+            syslog: {facility: "LOG_LOCAL5", level: "INFO"},
             console: {timestamp: true},
         }
     };
@@ -206,6 +185,7 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
 **Parameters**
 
 `options`:
+  - `enable`: `true` if this transport is enabled; default `true`.
   - `url`: an AMQP url, eg. `amqp://guest:guest@localhost/`,
   - `socketOptions`: optional object of socket options; default `{}`
     * `noDelay` sets `TCP_NODELAY` (booloan).
@@ -220,8 +200,8 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
   - `reconnect`: options for re-connection:
     * `retryTimeout`: how long in seconds to continue attempting re-connections before emitting an `error` event; default 0.
     * `retryDelay`: how long in seconds to wait between re-connection attempts; default 5.
-  - `logLevel`: optional log level filter, where only messages of this syslog level or higher are published; default `INFO`
-  - `facility`: optional syslog facility name; default `LOCAL0`
+  - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
+  - `facility`: optional syslog facility name, one of `AUTH`, `CRON`, `DAEMON`, `KERN`, `LOCAL0`, `LOCAL1`, `LOCAL2`, `LOCAL3`, `LOCAL4`, `LOCAL5`, `LOCAL6`, `LOCAL7`, `LPR`, `MAIL`, `NEWS`, `SYSLOG`, `USER`, `UUCP`; default `LOCAL0`.  Note the facility name in the AMQP log message is informational only.
 
 `done`: optional callback when connection is ready; used primarily for tests
   - `err`: an error object in case of error,
@@ -241,55 +221,77 @@ Example:
 
 ### lib/transports/console
 
-* `consoleTransport(color, timestamp, stderr)`
-* `consoleTransport({color: ..., timestamp: ..., stderr: ...})`
+* `consoleTransport(options)`
 
-Logs all messages to the console in the form "[level] message". The `color`
-parameter is a boolean to enable or disable color coded log messages. When not supplied, `color` defaults to
-`true`. Colors can also be disabled at runtime with the `--no-color` command line option. The `timestamp`
-parameter causes an ISO 8601 format timestamp to be prepended to all console messages. If the `stderr` parameter is
-`true`, then the logs messages are directed to process.stderr instead.
+**Parameters**
 
-    process.on('log', log.consoleTransport(true, true, true));
+`options`:
+  - `enable`: `true` if this transport is enabled; default `true`.
+  - `color`: `true` to enable color coded log messages; defaults `true`.
+  - `stderr`: `true` to direct log messages to standard error, otherwise standard output; default `false`.
+  - `timeout`: `true` to prepend ISO 8601 timestamp to all console messages; default `false`.
+
+Logs all messages to the console in the form:
+
+    [LEVEL] message text
+
+or when `options.timestamp` is true:
+
+    2018-03-26T15:07:27Z [LEVEL] message text
+
+Colors can also be disabled at runtime with the `--no-color` command line option.
+
+    process.on('log', log.consoleTransport({colour: true, timestamp: true, stderr: true}));
+
 
 ### lib/transports/stream ###
 
-* `streamTransport(stream, color, timestamp)`
-* `streamTransport({stream: ..., color: ..., timestamp: ...})`
+* `streamTransport(options)`
 
-Writes messages to the `stream`, one per line, in the form
-"[level] message". The `color` parameter is a boolean to enable or disable color coded log messages.
-When not supplied, `color` defaults to `false`. Colors can also be disabled at runtime with the
-`--no-color` command line option.  The `timestamp` parameter causes an ISO 8601 format timestamp
-to be prepended to all console messages. When not supplied, `timestamp` defaults to `true`.
+**Parameters**
 
-    process.on('log', log.streamTransport(logfile));
+`options`:
+  - `enable`: `true` if this transport is enabled; default `true`.
+  - `color`: `true` to enable color coded log messages; defaults `true`.
+  - `stream`: `Stream` object to write log messages, one per line.
+  - `timeout`: `true` to prepend ISO 8601 timestamp to all console messages; default `true`.
+
+Logs all messages to the console in the form:
+
+    [LEVEL] message text
+
+or when `options.timestamp` is true:
+
+    2018-03-26T15:07:27Z [LEVEL] message text
+
+Colors can also be disabled at runtime with the `--no-color` command line option.
+
+    process.on('log', log.streamTransport({stream: logfile}));
+
 
 ### lib/transports/syslog ###
 
-* `syslogTransport(facility[, mask])`
-* `syslogTransport({facility: ..., mask: ...})`
+* `syslogTransport(options)`
 
-Logs messages to the system log using the specified `facility` (e.g.
-`LOG_LOCAL5`, `LOG_SYSLOG`, `LOG_USER`). The `mask` parameter will set the minimum logging level (e.g. `INFO`,
-`DEBUG`, `ERR`, etc). If `mask` is not specified, the default value is `INFO`. For legacy
-compatibility, a value of `true` sets `mask` to `DEBUG`.
+**Parameters**
 
-Standard Log Facilities: `LOG_KERN`, `LOG_USER`, `LOG_MAIL`, `LOG_DAEMON`, `LOG_AUTH`, `LOG_SYSLOG`, `LOG_LPR`,
-`LOG_NEWS`, `LOG_UUCP`, `LOG_LOCAL0`, `LOG_LOCAL1`, `LOG_LOCAL2`, `LOG_LOCAL3`, `LOG_LOCAL4`, `LOG_LOCAL5`,
-`LOG_LOCAL6`, `LOG_LOCAL7`
+`options`:
+  - `enable`: `true` if this transport is enabled; default `true`.
+  - `facility`: one of `LOG_AUTH`, `LOG_CRON`, `LOG_DAEMON`, `LOG_KERN`, `LOG_LOCAL0`, `LOG_LOCAL1`, `LOG_LOCAL2`, `LOG_LOCAL3`, `LOG_LOCAL4`, `LOG_LOCAL5`, `LOG_LOCAL6`, `LOG_LOCAL7`, `LOG_LPR`, `LOG_MAIL`, `LOG_NEWS`, `LOG_SYSLOG`, `LOG_USER`, `LOG_UUCP`; default `LOG_LOCAL0`.
+  - `level`: one of (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
+
 
 Examples:
 
     // default minimum log level to INFO
-    process.on('log', log.syslogTransport('LOG_LOCAL1'));
+    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL1'}));
 
-    // set minimum log level to ERR
-    process.on('log', log.syslogTransport('LOG_LOCAL2', 'ERR'));
+    // set minimum log level to ERROR
+    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL2', level: 'ERROR'}));
 
     // set minimum log level to DEBUG
-    process.on('log', log.syslogTransport('LOG_LOCAL3', 'DEBUG'));
-    process.on('log', log.syslogTransport('LOG_LOCAL4', true)); // support legacy 'debug' parameter
+    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL3', level: 'DEBUG'}));
+
 
 #### Configuring syslog on Mac OS X
 
