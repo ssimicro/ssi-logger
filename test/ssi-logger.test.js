@@ -1080,6 +1080,347 @@ describe('ssi-logger', function() {
                 });
             });
         });
+        describe('payload preparation format=json', function () {
+            before((done) => {
+                options.amqpTransport.format = 'json';
+                done();
+            });
+
+            after((done) => {
+                options.amqpTransport.format = 'text';
+                done();
+            });
+
+            it('should have null message', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info();
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be(null);
+                    expect(payload).to.have.key('log_metadata');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    done();
+                });
+            });
+            it('should have simple message', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_message).to.be("Say something clever.");
+                    done();
+                });
+            });
+            it('should have null message and some data', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info({"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be(null);
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_details[0]).to.eql({"hello": "world"});
+                    expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
+                    done();
+                });
+            });
+            it('should take an Error like first argument as the log message and name', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info({name: 'ERROR_NAME', message: 'an error message'});
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be('an error message');
+                    expect(payload).to.have.keys('log_name', 'log_metadata');
+                    expect(payload.log_name).to.be('ERROR_NAME');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    done();
+                });
+            });
+            it('should have simple message and some data', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be("Say something clever.");
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_details[0]).to.eql({"hello": "world"});
+                    expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
+                    done();
+                });
+            });
+            it('should format printf-style message, remainder as data', function (done) {
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be("Say something clever, Jack N=123.");
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_details[0]).to.eql({"hello": "world"});
+                    expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
+                    done();
+                });
+            });
+            it('should format message, remainder as data with added defaults', function (done) {
+                let pub;
+
+                const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be("Say something clever, Jack N=123.");
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_details[0]).to.eql({"hello": "world"});
+                    expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
+                    expect(payload.log_details[2]).to.eql({request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3'});
+                    expect(payload.log_details[3]).to.be("foobar");
+                    done();
+                });
+            });
+            it('should handle data with cicular reference', function (done) {
+                const obj = {
+                    hello: "world",
+                    child: {
+                        world: "peace",
+                        child: {
+                            bang: "war",
+                            child: null
+                        }
+                    }
+                };
+                // Create a circular reference.
+                obj.child.child.child = obj.child;
+
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Object with circular reference.", obj);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be("Object with circular reference.");
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_details[0].child.child.child).to.be("[circular]");
+                    done();
+                });
+            });
+            it('should handle data with redacted content', function (done) {
+                const obj = {
+                    hello: "world",
+                    child: {
+                        world: "peace",
+                        child: {
+                            bang: "war",
+                            child: null
+                        }
+                    }
+                };
+
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.censor(['bang', /ello/]);
+                    log.info("Object with redacted content.", obj);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be("Object with redacted content.");
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_details[0].hello).to.be("[redacted]");
+                    expect(payload.log_details[0].child.child.bang).to.be("[redacted]");
+                    log.censor([]);
+                    done();
+                });
+            });
+            it('should handle data with special types and values', function (done) {
+                const basics = {
+                    "bool": true,
+                    "int": 123456,
+                    "decimal": 1234.56,
+                    "string": "(wave)",
+                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+                };
+
+                const error = new Error('You goofed!');
+                error.extra = "cream pie";
+                error.inner = new SyntaxError("I am blind.");
+                error.inner.inner = new Error("Where's the kaboom?");
+                error.inner.inner.inner = null;
+
+                const specials = {
+                    "null": null,
+                    "undefined": undefined,
+                    "Error": error,
+                    "Function": function noop() { },
+                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                    "RegExp": /^[Hh]ello .orld$/i,
+                    "Infinity": Infinity,
+                    "NegInfinity": -Infinity,
+                    "NaN": NaN,
+                };
+
+                let pub;
+
+                const handler = log.amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Special types and values.", basics, specials);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    const payload = pub.queue[0].payload;
+                    expect(payload.log_message).to.be("Special types and values.");
+                    expect(payload).to.have.keys('log_metadata', 'log_details');
+                    expect(payload.log_metadata.level).to.be('INFO');
+                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+
+                    expect(payload.log_details[0]).to.eql({
+                        bool: true,
+                        int: 123456,
+                        decimal: 1234.56,
+                        string: "(wave)",
+                        array: {
+                            "0": false,
+                            "1": 321,
+                            "2": 543.21,
+                            "3": "beep",
+                            "4": {"0": 3, "1": 2, "2": 1},
+                            "5": { "foo": "fighters" },
+                        },
+                    });
+
+                    expect(payload.log_details[1]).to.eql({
+                        "null": null,
+                        "undefined": "[undefined]",
+                        "Error": {
+                          "extra": "cream pie",
+                          "inner": {
+                            "inner": {
+                              "inner": null,
+                              "message": "Where's the kaboom?",
+                              "name": "Error",
+                            },
+                            "message": "I am blind.",
+                            "name": "SyntaxError",
+                          },
+                          "message": "You goofed!",
+                          "name": "Error",
+                        },
+                        "Function": "[function noop]",
+                        "Date": "2017-08-10T17:56:19.000Z",
+                        "RegExp": "/^[Hh]ello .orld$/i",
+                        "Infinity": "[Infinity]",
+                        "NegInfinity": "[-Infinity]",
+                        "NaN": "[NaN]",
+                    });
+
+                    done();
+                });
+            });
+        });
         describe("AMQP circuit", function () {
             this.timeout(5000);
 
