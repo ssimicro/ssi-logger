@@ -203,6 +203,7 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
   - `routeKeyPrefix`: prefix for the routing key; default "log".  The routing key format is "prefix.proc_name.facility.level".
   - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
   - `facility`: optional syslog facility name, one of `AUTH`, `CRON`, `DAEMON`, `KERN`, `LOCAL0`, `LOCAL1`, `LOCAL2`, `LOCAL3`, `LOCAL4`, `LOCAL5`, `LOCAL6`, `LOCAL7`, `LPR`, `MAIL`, `NEWS`, `SYSLOG`, `USER`, `UUCP`; default `LOCAL0`.  Note the facility name in the AMQP log message is informational only.
+  - `format`: one of `text`, `json`; default `text`.  `text` sends text log message with all the arguments flattened out into message.  `json` formats the message only those % arguments specified, the remaining unused are pased as JSON.
 
 `done`: optional callback when connection is ready; used primarily for tests
   - `err`: an error object in case of error,
