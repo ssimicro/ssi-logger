@@ -32,10 +32,12 @@ const obj = {
     }
 };
 
+const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
 
-log.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, ["foo", "bar"], {hello: 'bye'}, ['x','y','z']);
+mylog.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, 1234, ["foo", "bar"], false, new Error('daffy'), {hello: 'bye'}, ['x','y','z']);
 
 log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, true, ["bar", "bat"], "slippery", 321);
+log.error(new Error("daffy was here"), 987, "bob");
 
 setTimeout(function () {
     for (var i = 0; i < 100; i++) {
