@@ -1108,8 +1108,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be(null);
                     expect(payload).to.have.key('log_metadata');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     done();
                 });
             });
@@ -1129,8 +1129,8 @@ describe('ssi-logger', function() {
 
                     const payload = pub.queue[0].payload;
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_message).to.be("Say something clever.");
                     done();
                 });
@@ -1152,8 +1152,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be(null);
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0]).to.eql({"hello": "world"});
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     done();
@@ -1177,8 +1177,8 @@ describe('ssi-logger', function() {
                     expect(payload.log_message).to.be('an error message');
                     expect(payload).to.have.keys('log_name', 'log_metadata');
                     expect(payload.log_name).to.be('ERROR_NAME');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     done();
                 });
             });
@@ -1199,8 +1199,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0]).to.eql({"hello": "world"});
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     done();
@@ -1223,8 +1223,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever, Jack N=123.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0]).to.eql({"hello": "world"});
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     done();
@@ -1249,8 +1249,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever, Jack N=123.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0]).to.eql({"hello": "world"});
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     expect(payload.log_details[2]).to.eql({request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3'});
@@ -1288,8 +1288,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be("Object with circular reference.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0].child.child.child).to.be("[circular]");
                     done();
                 });
@@ -1323,8 +1323,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be("Object with redacted content.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0].hello).to.be("[redacted]");
                     expect(payload.log_details[0].child.child.bang).to.be("[redacted]");
                     log.censor([]);
@@ -1374,8 +1374,8 @@ describe('ssi-logger', function() {
                     const payload = pub.queue[0].payload;
                     expect(payload.log_message).to.be("Special types and values.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
-                    expect(payload.log_metadata.level).to.be('INFO');
-                    expect(payload.log_metadata.facility).to.be('LOCAL0');
+                    expect(payload.log_metadata.Level).to.be('INFO');
+                    expect(payload.log_metadata.Facility).to.be('LOCAL0');
 
                     expect(payload.log_details[0]).to.eql({
                         bool: true,
