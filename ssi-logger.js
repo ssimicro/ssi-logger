@@ -100,6 +100,7 @@ function defaults() {
 // Install a transport if options contains a property with a name
 // that matches a known transport and has `enable` set to `true`.
 function configureTransports(options) {
+    process.removeAllListeners('log');
     _.forEach(options, (args, transport) => {
         if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(transports, transport)) {
             process.on('log', transports[transport](args));
