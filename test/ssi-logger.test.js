@@ -1787,7 +1787,7 @@ describe('ssi-logger', function() {
                     });
                 });
             });
-            it('should publish single log message with assorted data types and values', function (done) {
+            it('should publish single log message with assorted data types and values format=text', function (done) {
                 const basics = {
                     "bool": true,
                     "int": 123456,
@@ -1840,6 +1840,66 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Level).to.be('INFO');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
                         expect(msg.content).to.be('"Assorted data types bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message=\\"You goofed!\\" Error.extra=\\"cream pie\\" Error.inner.name=SyntaxError Error.inner.message=\\"I am blind.\\" Error.inner.inner.name=Error Error.inner.inner.message=\\"Where\'s the kaboom?\\" Error.inner.inner.inner=null Function=\\"[function noop]\\" Date=2017-08-10T13:56:19-04:00 RegExp=\\"/^[Hh]ello .orld$/i\\" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]"');
+
+                        pub.end();
+                        done();
+                    });
+                });
+            });
+            it('should publish single log message with assorted data types and values format=json', function (done) {
+                const basics = {
+                    "bool": true,
+                    "int": 123456,
+                    "decimal": 1234.56,
+                    "string": "(wave)",
+                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+                };
+
+                const error = new Error('You goofed!');
+                error.extra = "cream pie";
+                error.inner = new SyntaxError("I am blind.");
+                error.inner.inner = new Error("Where's the kaboom?");
+                error.inner.inner.inner = null;
+
+                const specials = {
+                    "null": null,
+                    "undefined": undefined,
+                    "Error": error,
+                    "Function": function noop() { },
+                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                    "RegExp": /^[Hh]ello .orld$/i,
+                    "Infinity": Infinity,
+                    "NegInfinity": -Infinity,
+                    "NaN": NaN,
+                }
+
+                let pub;
+
+                const handler = log.amqpTransport(_.defaultsDeep({format: "json"}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    pub = publisher;
+                    log.info("Assorted data types", basics, specials);
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    consumer.consume(function (err, msg, next) {
+                        // Ack message regardless of possible error.
+                        next(null);
+
+                        expect(err).to.be(null);
+
+                        if (process.env.LOG_LEVEL === 'DEBUG') {
+                            console.log(JSON.stringify(msg, null, 2));
+                        }
+
+                        // What goes around...
+                        expect(msg.properties.headers.Level).to.be('INFO');
+                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
+                        expect(msg.content.log_message).to.be('Assorted data types');
+                        expect(msg.content.log_details[0].array[3]).to.be('beep');
 
                         pub.end();
                         done();
