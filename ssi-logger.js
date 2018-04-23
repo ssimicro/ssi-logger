@@ -125,16 +125,9 @@ function addConvenienceFunctions(logger) {
 
 addConvenienceFunctions(module.exports);
 
-// Export various transports...
-module.exports.amqpTransport = require('./lib/transports/amqp');
-module.exports.consoleTransport = require('./lib/transports/console');
-module.exports.streamTransport = require('./lib/transports/stream');
-module.exports.syslogTransport = require('./lib/transports/syslog');
-
 const transports = {
-   amqp: module.exports.amqpTransport,
-   console: module.exports.consoleTransport,
-   stream: module.exports.streamTransport,
-   syslog: module.exports.syslogTransport,
+   amqp: require('./lib/transports/amqp'),
+   console: require('./lib/transports/console'),
+   stream: require('./lib/transports/stream'),
+   syslog: require('./lib/transports/syslog'),
 };
-

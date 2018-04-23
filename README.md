@@ -74,8 +74,14 @@ With censorship:
         /pass(word)?/  // and/or regular expressions
     ]);
 
-    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL5', level: 'INFO'}));
-    process.on('log', log.consoleTransport({}));
+    var options = {
+        logger: {
+            syslog: {facility: "LOG_LOCAL5", level: "INFO"},
+            console: {},
+        }
+    };
+
+    log.configureTransports(options.logger);
 
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
     // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted]' }
@@ -101,7 +107,14 @@ Logging to a file with daily log rotation:
         verbose: false,
         date_format: 'YYYY-MM-DD'
     });
-    process.on('log', log.streamTransport({stream: logfile}));
+
+    var options = {
+        logger: {
+            stream: { stream: logfile },
+        }
+    };
+
+    log.configureTransports(options.logger);
 
     log('INFO', 'This message gets logged to a file');
 
@@ -172,19 +185,28 @@ Here's a setup example for a project using multiple transports to log messages. 
 This is a very powerful pattern. It allows for many different combinations of actions. For example, one could write
 a transport such that a LOG_ALERT message about the database being down will trigger an e-mail to go out to the sysadmin.
 
+## log.configureTransports(transports)
+
+**Parameters**
+
+`transports`: contains one or more transports to configure
+   - `amqp`: optional AMQP transport options, see below
+   - `console`: optional console transport options, see below
+   - `stream`: optional stream transport options, see below
+   - `syslog`: optional SysLog transport options, see below
+
+
 ## Available Transports
 
 Here are the available transports.
 
 ### lib/transports/amqp
 
-* `amqpTransport(options [, done])`
-
 Log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `$TMPDIR/$PROCESS_NAME.stack` and attempt to reconnect if so configured.  If  `$TMPDIR` is undefined, the default is `/var/tmp`.
 
 **Parameters**
 
-`options`:
+`amqp`:
   - `enable`: `true` if this transport is enabled; default `true`.
   - `url`: an AMQP url, eg. `amqp://guest:guest@localhost/`,
   - `socketOptions`: optional object of socket options; default `{}`
@@ -205,29 +227,21 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
   - `facility`: optional syslog facility name, one of `AUTH`, `CRON`, `DAEMON`, `KERN`, `LOCAL0`, `LOCAL1`, `LOCAL2`, `LOCAL3`, `LOCAL4`, `LOCAL5`, `LOCAL6`, `LOCAL7`, `LPR`, `MAIL`, `NEWS`, `SYSLOG`, `USER`, `UUCP`; default `LOCAL0`.  Note the facility name in the AMQP log message is informational only.
   - `format`: one of `text`, `json`; default `text`.  `text` sends text log message with all the arguments flattened out into message.  `json` formats the message only those % arguments specified, the remaining unused are pased as JSON.
 
-`done`: optional callback when connection is ready; used primarily for tests
-  - `err`: an error object in case of error,
-  - `publisher`: an AMQP publisher object.
-    * `end()`: terminate the AMQP channel and connection
-
-**Return**
-A `log` event handler.
-
 Example:
 
-    process.on('log', log.amqpTransport({
-        url: 'amqp://guest:somepassword@example.com/virtual_host',
-        exchangeName: 'logger'
-    }));
+    log.configureTransports({
+        amqp: {
+            url: 'amqp://guest:somepassword@example.com/virtual_host',
+            exchangeName: 'logger'
+       }
+    });
 
 
 ### lib/transports/console
 
-* `consoleTransport(options)`
-
 **Parameters**
 
-`options`:
+`console`:
   - `enable`: `true` if this transport is enabled; default `true`.
   - `color`: `true` to enable color coded log messages; defaults `true`.
   - `stderr`: `true` to direct log messages to standard error, otherwise standard output; default `false`.
@@ -243,16 +257,16 @@ or when `options.timestamp` is true:
 
 Colors can also be disabled at runtime with the `--no-color` command line option.
 
-    process.on('log', log.consoleTransport({colour: true, timestamp: true, stderr: true}));
+    log.configureTransports({
+        console: {colour: true, timestamp: true, stderr: true}
+    });
 
 
 ### lib/transports/stream ###
 
-* `streamTransport(options)`
-
 **Parameters**
 
-`options`:
+`stream`:
   - `enable`: `true` if this transport is enabled; default `true`.
   - `color`: `true` to enable color coded log messages; defaults `true`.
   - `stream`: `Stream` object to write log messages, one per line.
@@ -268,16 +282,16 @@ or when `options.timestamp` is true:
 
 Colors can also be disabled at runtime with the `--no-color` command line option.
 
-    process.on('log', log.streamTransport({stream: logfile}));
+    log.configureTransports({
+        stream: {enable: true, stream: logfile}
+    });
 
 
 ### lib/transports/syslog ###
 
-* `syslogTransport(options)`
-
 **Parameters**
 
-`options`:
+`syslog`:
   - `enable`: `true` if this transport is enabled; default `true`.
   - `facility`: one of `LOG_AUTH`, `LOG_CRON`, `LOG_DAEMON`, `LOG_KERN`, `LOG_LOCAL0`, `LOG_LOCAL1`, `LOG_LOCAL2`, `LOG_LOCAL3`, `LOG_LOCAL4`, `LOG_LOCAL5`, `LOG_LOCAL6`, `LOG_LOCAL7`, `LOG_LPR`, `LOG_MAIL`, `LOG_NEWS`, `LOG_SYSLOG`, `LOG_USER`, `LOG_UUCP`; default `LOG_LOCAL0`.
   - `level`: one of (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
@@ -286,13 +300,19 @@ Colors can also be disabled at runtime with the `--no-color` command line option
 Examples:
 
     // default minimum log level to INFO
-    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL1'}));
+    log.configureTransports({
+        syslog: {facility: 'LOG_LOCAL1'}
+    });
 
     // set minimum log level to ERROR
-    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL2', level: 'ERROR'}));
+    log.configureTransports({
+        syslog: {facility: 'LOG_LOCAL2', level: 'ERROR'}
+    });
 
     // set minimum log level to DEBUG
-    process.on('log', log.syslogTransport({facility: 'LOG_LOCAL3', level: 'DEBUG'}));
+    log.configureTransportTransports({
+        syslog: {facility: 'LOG_LOCAL3', level: 'DEBUG'}
+    });
 
 
 #### Configuring syslog on Mac OS X
