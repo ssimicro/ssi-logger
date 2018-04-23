@@ -108,12 +108,30 @@ function configureTransports(options) {
     });
 }
 
+function transformLogEvent(log_event) {
+    return [
+        function legacyToVersion1_0_0(log_event) {
+            // Does it look like a legacy event?
+            if (_.isObject(log_event) && _.has(log_event, 'level') && _.has(log_event, 'message') && !_.has(log_event, 'version')) {
+                _.defaultsDeep({}, log_event, {
+                    version: '1.0.0',
+                    host: os.hostname(),
+                    created: new Date(),
+                    data: [],
+                });
+            }
+            return log_event;
+        },
+    ].reduce((result, transform) => transform(result), log_event);
+}
+
 // Public API
 module.exports = log;
 module.exports.censor = censor;
 module.exports.defaults = defaults;
 module.exports.level_names = level_names;
 module.exports.configureTransports = configureTransports;
+module.exports.transformLogEvent = transformLogEvent;
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
