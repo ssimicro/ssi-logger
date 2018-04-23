@@ -8,6 +8,7 @@ var log = require('../');
 var os = require('os');
 var path = require('path');
 var filterObject = require('../lib/filterObject.js');
+var amqpTransport = require('../lib/transports/amqp.js');
 
 const optDescribe = (process.env.TESTALL === 'YES' ? describe : describe.skip);
 const optIt = (process.env.TESTALL === 'YES' ? it : it.skip);
@@ -1419,6 +1420,60 @@ describe('ssi-logger', function() {
 
                     done();
                 });
+            });
+        });
+        describe("formatObjects()", function () {
+            it("should convert an array into an object", (done) => {
+                expect(amqpTransport.formatObjects([])).to.eql({});
+                expect(amqpTransport.formatObjects(["hello", "world", "sniff"])).to.eql({0: "hello", 1: "world", 2: "sniff"});
+                done();
+            });
+            it("should accept an object", (done) => {
+                expect(amqpTransport.formatObjects({})).to.eql({});
+                expect(amqpTransport.formatObjects({hello: "world"})).to.eql({hello: "world"});
+                done();
+            });
+            it("should not modify the original object", (done) => {
+                const array = ["hello", "world", "sniff"];
+                const obj = amqpTransport.formatObjects(array);
+                expect(obj).not.to.be(array);
+                expect(obj).to.eql({0: "hello", 1: "world", 2: "sniff"});
+                done();
+            });
+            it("should traverse an object converting arrays into objects", (done) => {
+                const array = ["hello", {
+                    level: 1,
+                    naughty: true,
+                    hello: "world",
+                    array1: [ 1, { array2: [ "foo", "bar" ], bat: "flying mouse"}, 3]
+                }, "ugh"];
+                expect(amqpTransport.formatObjects(array)).to.eql({
+                    0: "hello",
+                    1: {
+                        level: 1,
+                        naughty: true,
+                        hello: "world",
+                        array1: {
+                            0: 1,
+                            1: {
+                                array2: {
+                                    0: "foo",
+                                    1: "bar",
+                                },
+                                bat: "flying mouse",
+                            },
+                            2: 3
+                        }
+                    },
+                    2: "ugh"
+                });
+                done();
+            });
+            it("should convert Date object into ISO 8601 date string", (done) => {
+                const obj = amqpTransport.formatObjects({date: new Date("23 April 2018 11:43")});
+                expect(obj.date).to.be.a('string');
+                expect(obj.date).to.be("2018-04-23T15:43:00.000Z");
+                done();
             });
         });
         describe("AMQP circuit", function () {
