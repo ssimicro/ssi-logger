@@ -483,20 +483,20 @@ describe('ssi-logger', function() {
         });
     });
 
-    describe("formatObjects", function () {
+    describe("convertArraysToObjects", function () {
         it("should clone an array into an object", (done) => {
-            expect(amqpTransport.formatObjects([])).to.eql({});
-            expect(amqpTransport.formatObjects(["hello", "world", "sniff"])).to.eql({0: "hello", 1: "world", 2: "sniff"});
+            expect(amqpTransport.convertArraysToObjects([])).to.eql({});
+            expect(amqpTransport.convertArraysToObjects(["hello", "world", "sniff"])).to.eql({0: "hello", 1: "world", 2: "sniff"});
             done();
         });
         it("should clone an object", (done) => {
-            expect(amqpTransport.formatObjects({})).to.eql({});
-            expect(amqpTransport.formatObjects({hello: "world"})).to.eql({hello: "world"});
+            expect(amqpTransport.convertArraysToObjects({})).to.eql({});
+            expect(amqpTransport.convertArraysToObjects({hello: "world"})).to.eql({hello: "world"});
             done();
         });
         it("should not modify the original object", (done) => {
             const array = ["hello", "world", "sniff"];
-            const obj = amqpTransport.formatObjects(array);
+            const obj = amqpTransport.convertArraysToObjects(array);
             expect(obj).not.to.be(array);
             expect(obj).to.eql({0: "hello", 1: "world", 2: "sniff"});
             done();
@@ -508,7 +508,7 @@ describe('ssi-logger', function() {
                 hello: "world",
                 array1: [ 1, { array2: [ "foo", "bar" ], bat: "flying mouse"}, 3]
             }, "ugh"];
-            expect(amqpTransport.formatObjects(array)).to.eql({
+            expect(amqpTransport.convertArraysToObjects(array)).to.eql({
                 0: "hello",
                 1: {
                     level: 1,
@@ -531,7 +531,7 @@ describe('ssi-logger', function() {
             done();
         });
         it("should convert Date object into ISO 8601 date string", (done) => {
-            const obj = amqpTransport.formatObjects({date: new Date("23 April 2018 11:43")});
+            const obj = amqpTransport.convertArraysToObjects({date: new Date("23 April 2018 11:43")});
             expect(obj.date).to.be.a('string');
             expect(obj.date).to.be("2018-04-23T15:43:00.000Z");
             done();
