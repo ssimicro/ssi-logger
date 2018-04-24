@@ -265,6 +265,38 @@ describe('ssi-logger', function() {
 
     });
 
+    describe('transformLogEvent', function () {
+        it("should pass through version 1.0.0 log event unchanged", (done) => {
+            const event_in = {
+                version: "1.0.0",
+                level: "INFO",
+                message: "pass through",
+                created: new Date(),
+                host: os.hostname(),
+                data: [ "abc" ],
+            };
+            expect(log.transformLogEvent(event_in)).to.eql(event_in);
+            done();
+        });
+        it("should add extra fields to legacy pre-1.0.0 log event", (done) => {
+            const event_in = {
+                level: "INFO",
+                message: "legacy event message",
+            };
+            const event_out = log.transformLogEvent(event_in);
+            expect(event_out).to.have.key('created');
+            expect(event_out.created).to.a(Date);
+            expect(_.omit(event_out, ['created'])).to.eql({
+                version: "1.0.0",
+                level: "INFO",
+                message: "legacy event message",
+                host: os.hostname(),
+                data: [],
+            });
+            done();
+        });
+    });
+
     describe('formatting', function () {
 
         it('should concatinate multiple message arguments', function (done) {

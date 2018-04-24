@@ -113,7 +113,7 @@ function transformLogEvent(log_event) {
         function legacyToVersion1_0_0(log_event) {
             // Does it look like a legacy event?
             if (_.isObject(log_event) && _.has(log_event, 'level') && _.has(log_event, 'message') && !_.has(log_event, 'version')) {
-                _.defaultsDeep({}, log_event, {
+                _.defaultsDeep(log_event, {
                     version: '1.0.0',
                     host: os.hostname(),
                     created: new Date(),
