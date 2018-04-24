@@ -532,8 +532,8 @@ describe('ssi-logger', function() {
         });
         it("should convert Date object into ISO 8601 date string", (done) => {
             const obj = amqpTransport.convertArraysToObjects({date: new Date("23 April 2018 11:43")});
-            expect(obj.date).to.be.a('string');
-            expect(obj.date).to.be("2018-04-23T15:43:00.000Z");
+            expect(obj.date).to.be.a(Date);
+            expect(obj.date).to.eql(new Date("2018-04-23T15:43:00.000Z"));
             done();
         });
     });
@@ -1498,7 +1498,7 @@ describe('ssi-logger', function() {
                           "name": "Error",
                         },
                         "Function": "[function noop]",
-                        "Date": "2017-08-10T17:56:19.000Z",
+                        "Date": new Date("2017-08-10T17:56:19.000Z"),
                         "RegExp": "/^[Hh]ello .orld$/i",
                         "Infinity": "[Infinity]",
                         "NegInfinity": "[-Infinity]",
