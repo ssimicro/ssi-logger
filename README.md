@@ -245,7 +245,7 @@ Example:
   - `enable`: `true` if this transport is enabled; default `true`.
   - `color`: `true` to enable color coded log messages; defaults `true`.
   - `stderr`: `true` to direct log messages to standard error, otherwise standard output; default `false`.
-  - `timeout`: `true` to prepend ISO 8601 timestamp to all console messages; default `false`.
+  - `timestamp`: `true` to prepend ISO 8601 timestamp to all console messages; default `false`.
 
 Logs all messages to the console in the form:
 
