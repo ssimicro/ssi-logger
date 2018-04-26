@@ -30,7 +30,7 @@ describe('ssi-logger', function() {
     var ip_expect = ip_message + ' ip_address=' + ip_address;
 
     describe('logging', function () {
-    
+
         it('should emit log events', function (done) {
 
             process.on('log', function testf(obj) {
@@ -312,7 +312,7 @@ describe('ssi-logger', function() {
         });
 
         it('should format complex objects', function (done) {
- 
+
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
@@ -324,7 +324,7 @@ describe('ssi-logger', function() {
         });
 
         it('should format arrays', function (done) {
- 
+
             process.on('log', function testf(obj) {
                 process.removeListener('log', testf);
                 expect(obj.level).to.be(level);
@@ -369,7 +369,7 @@ describe('ssi-logger', function() {
         });
 
     });
-        
+
     describe('filterObject', function () {
         it('should clone the object', function () {
             const obj = {
@@ -658,7 +658,7 @@ describe('ssi-logger', function() {
         });
     });
 
-    optDescribe('amqpTransport', function () {
+    describe('amqpTransport payload preparation', function () {
         let options = {
             amqpTransport: {
                 format: 'text',
@@ -670,239 +670,11 @@ describe('ssi-logger', function() {
             console.error(err);
         }
 
-        describe('connect', function () {
-            this.timeout(5000);
-
-            it('should fail for invalid credentials', function (done) {
-                amqpTransport({
-                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com'
-                }, (err, publisher) => {
-                    expect(err).not.to.be(null);
-                    expect(err).to.be.an(Error);
-                    done();
-                });
-            });
-            it('should return a handler', function (done) {
-                expect(amqpTransport(options.amqpTransport, (err, publisher) => publisher.end())).to.be.a('function');
-                done();
-            });
-            it('should return a handler when no options argument', function (done) {
-                expect(amqpTransport((err, publisher) => publisher.end())).to.be.a('function');
-                done();
-            });
-            it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-
-                    producer.on('error', (err) => {
-                        expect(err).not.be(null);
-                        expect(producer.conn).to.be(null);
-                        done();
-                    });
-
-                    producer.bail(new Error('error triggered by test'));
-                });
-            });
-            it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-                    producer.bail(new Error('error triggered by test'));
-
-                    setTimeout(() => {
-                        expect(producer.conn).not.to.be(null);
-                        expect(producer.conn).not.to.be(conn_before);
-                        producer.end();
-                        done();
-                    }, 2000);
-                });
-            });
-            it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    producer.closed();
-                    expect(producer.conn).to.be(null);
-                    done();
-                });
-            });
-            it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    producer.closed();
-                    expect(producer.conn).to.be(null);
-                    done();
-                });
-            });
-            it('should reconnect on closed error when reconnect.retryTimeout > 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-
-                    producer.closed(new Error('error triggered by test'));
-
-                    setTimeout(() => {
-                        expect(producer.conn).not.to.be(null);
-                        expect(producer.conn).not.to.be(conn_before);
-                        producer.end();
-                        done();
-                    }, 2000);
-                });
-            });
-            it('should retry reconnection until reconnect.retryTimeout reached', function (done) {
-                amqpTransport({
-                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
-                    reconnect: {
-                        retryTimeout: 2,
-                        retryDelay: 1,
-                    }
-                }, (err, producer) => {
-                    expect(err).not.to.be(null);
-
-                    producer.once('error', (err) => {
-                        expect(err.attempts).to.be(2);
-                        producer.end();
-                        done();
-                    });
-
-                    producer.bail(new Error('error triggered by test'));
-                });
-            });
+        beforeEach((done) => {
+            log.censor([]);
+            done();
         });
 
-        describe('queue', function () {
-            it('should queue log message', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('INFO');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('LOCAL0');
-                    done();
-                });
-            });
-            it('should filter log messages below INFO', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.debug("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(0);
-                    done();
-                });
-            });
-            it('should filter log messages below ERROR', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.warning("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(0);
-                    done();
-                });
-            });
-            it('should not filter log message ERROR or above', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.error("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('ERROR');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
-                    done();
-                });
-            });
-
-            it('should not filter log message ERR (ERROR) or above', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.err("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('ERROR');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
-                    done();
-                });
-            });
-
-            it('should not filter log message WARNING (WARN) or above', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'WARN', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.warning("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('WARN');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
-                    done();
-                });
-            });
-        });
         describe('payload preparation format=text', function () {
             it('should have null message', function (done) {
                 let pub;
@@ -1505,6 +1277,252 @@ describe('ssi-logger', function() {
                         "NaN": "[NaN]",
                     });
 
+                    done();
+                });
+            });
+        });
+    });
+    optDescribe('amqpTransport', function () {
+        let options = {
+            amqpTransport: {
+                format: 'text',
+            }
+        };
+        try {
+            options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
+        } catch (err) {
+            console.error(err);
+        }
+
+        describe('connect', function () {
+            this.timeout(5000);
+
+            it('should fail for invalid credentials', function (done) {
+                amqpTransport({
+                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com'
+                }, (err, publisher) => {
+                    expect(err).not.to.be(null);
+                    expect(err).to.be.an(Error);
+                    done();
+                });
+            });
+            it('should return a handler', function (done) {
+                expect(amqpTransport(options.amqpTransport, (err, publisher) => publisher.end())).to.be.a('function');
+                done();
+            });
+            it('should return a handler when no options argument', function (done) {
+                expect(amqpTransport((err, publisher) => publisher.end())).to.be.a('function');
+                done();
+            });
+            it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
+                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+
+                    producer.on('error', (err) => {
+                        expect(err).not.be(null);
+                        expect(producer.conn).to.be(null);
+                        done();
+                    });
+
+                    producer.bail(new Error('error triggered by test'));
+                });
+            });
+            it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
+                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    const conn_before = producer.conn;
+                    producer.bail(new Error('error triggered by test'));
+
+                    setTimeout(() => {
+                        expect(producer.conn).not.to.be(null);
+                        expect(producer.conn).not.to.be(conn_before);
+                        producer.end();
+                        done();
+                    }, 2000);
+                });
+            });
+            it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
+                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    producer.closed();
+                    expect(producer.conn).to.be(null);
+                    done();
+                });
+            });
+            it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
+                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    producer.closed();
+                    expect(producer.conn).to.be(null);
+                    done();
+                });
+            });
+            it('should reconnect on closed error when reconnect.retryTimeout > 0', function (done) {
+                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
+                    expect(err).to.be(null);
+                    const conn_before = producer.conn;
+
+                    producer.closed(new Error('error triggered by test'));
+
+                    setTimeout(() => {
+                        expect(producer.conn).not.to.be(null);
+                        expect(producer.conn).not.to.be(conn_before);
+                        producer.end();
+                        done();
+                    }, 2000);
+                });
+            });
+            it('should retry reconnection until reconnect.retryTimeout reached', function (done) {
+                amqpTransport({
+                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
+                    reconnect: {
+                        retryTimeout: 2,
+                        retryDelay: 1,
+                    }
+                }, (err, producer) => {
+                    expect(err).not.to.be(null);
+
+                    producer.once('error', (err) => {
+                        expect(err.attempts).to.be(2);
+                        producer.end();
+                        done();
+                    });
+
+                    producer.bail(new Error('error triggered by test'));
+                });
+            });
+        });
+
+        describe('queue', function () {
+            it('should queue log message', function (done) {
+                let pub;
+
+                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.info("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    expect(pub.queue[0].payload).to.be("Say something clever.");
+                    expect(pub.queue[0].publishOptions.headers.Level).to.be('INFO');
+                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('LOCAL0');
+                    done();
+                });
+            });
+            it('should filter log messages below INFO', function (done) {
+                let pub;
+
+                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.debug("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(0);
+                    done();
+                });
+            });
+            it('should filter log messages below ERROR', function (done) {
+                let pub;
+
+                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.warning("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(0);
+                    done();
+                });
+            });
+            it('should not filter log message ERROR or above', function (done) {
+                let pub;
+
+                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.error("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    expect(pub.queue[0].payload).to.be("Say something clever.");
+                    expect(pub.queue[0].publishOptions.headers.Level).to.be('ERROR');
+                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
+                    done();
+                });
+            });
+
+            it('should not filter log message ERR (ERROR) or above', function (done) {
+                let pub;
+
+                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.err("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    expect(pub.queue[0].payload).to.be("Say something clever.");
+                    expect(pub.queue[0].publishOptions.headers.Level).to.be('ERROR');
+                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
+                    done();
+                });
+            });
+
+            it('should not filter log message WARNING (WARN) or above', function (done) {
+                let pub;
+
+                const handler = amqpTransport(_.defaultsDeep({level: 'WARN', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
+                    expect(err).to.be(null);
+                    publisher.end();
+                    pub = publisher;
+                    log.warning("Say something clever.");
+                });
+
+                process.on('log', function testf(log_event) {
+                    process.removeListener('log', testf);
+                    handler(log_event);
+
+                    expect(pub).not.to.be(null);
+                    expect(pub.queue.length).to.be(1);
+
+                    expect(pub.queue[0].payload).to.be("Say something clever.");
+                    expect(pub.queue[0].publishOptions.headers.Level).to.be('WARN');
+                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
                     done();
                 });
             });
