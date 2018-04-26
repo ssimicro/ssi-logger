@@ -690,8 +690,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be('');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: `);
                     done();
                 });
             });
@@ -709,8 +709,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Say something clever.");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
                     done();
                 });
             });
@@ -728,8 +728,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be('hello=world 0=foo 1=bar');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: hello=world 0=foo 1=bar`);
                     done();
                 });
             });
@@ -747,8 +747,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be('name=ERROR_NAME message="an error message"');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: name=ERROR_NAME message="an error message"`);
                     done();
                 });
             });
@@ -766,8 +766,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Say something clever. hello=world 0=foo 1=bar");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever. hello=world 0=foo 1=bar`);
                     done();
                 });
             });
@@ -785,8 +785,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Say something clever, Jack N=123. hello=world 0=foo 1=bar");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar`);
                     done();
                 });
             });
@@ -804,8 +804,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Append Jack 123 543.21 true name=Error message=goofed hello=world 0=foo 1=bar");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Append Jack 123 543.21 true name=Error message=goofed hello=world 0=foo 1=bar`);
                     done();
                 });
             });
@@ -825,8 +825,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Say something clever, Jack N=123. hello=world 0=foo 1=bar request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar`);
                     done();
                 });
             });
@@ -857,8 +857,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Object with circular reference. hello=world child.world=peace child.child.bang=war child.child.child=[circular]");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=world child.world=peace child.child.bang=war child.child.child=[circular]`);
                     done();
                 });
             });
@@ -888,8 +888,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be("Object with circular reference. hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null");
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null`);
                     log.censor([]);
                     done();
                 });
@@ -934,8 +934,8 @@ describe('ssi-logger', function() {
                     process.removeListener('log', testf);
                     handler(log_event);
 
-                    const payload = pub.queue[0].payload;
-                    expect(payload).to.be('Special types and values. bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Special types and values. bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]`);
                     done();
                 });
             });
@@ -1411,9 +1411,10 @@ describe('ssi-logger', function() {
                     expect(pub).not.to.be(null);
                     expect(pub.queue.length).to.be(1);
 
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('INFO');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('LOCAL0');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('INFO');
+                    expect(hdr.Facility).to.be('LOCAL0');
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
                     done();
                 });
             });
@@ -1472,9 +1473,10 @@ describe('ssi-logger', function() {
                     expect(pub).not.to.be(null);
                     expect(pub.queue.length).to.be(1);
 
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('ERROR');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('ERROR');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
                     done();
                 });
             });
@@ -1496,9 +1498,10 @@ describe('ssi-logger', function() {
                     expect(pub).not.to.be(null);
                     expect(pub.queue.length).to.be(1);
 
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('ERROR');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('ERROR');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
                     done();
                 });
             });
@@ -1520,9 +1523,10 @@ describe('ssi-logger', function() {
                     expect(pub).not.to.be(null);
                     expect(pub.queue.length).to.be(1);
 
-                    expect(pub.queue[0].payload).to.be("Say something clever.");
-                    expect(pub.queue[0].publishOptions.headers.Level).to.be('WARN');
-                    expect(pub.queue[0].publishOptions.headers.Facility).to.be('DAEMON');
+                    const hdr = pub.queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('WARN');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
                     done();
                 });
             });
@@ -1607,7 +1611,8 @@ describe('ssi-logger', function() {
                         expect(msg.properties.contentEncoding).to.be('utf8');
                         expect(msg.properties.headers.Level).to.be('ALERT');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Circuit Test hello=world 0=foo 1=bar"');
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test hello=world 0=foo 1=bar"`);
                         pub.end();
                         done();
                     });
@@ -1642,7 +1647,9 @@ describe('ssi-logger', function() {
                         expect(msg.properties.contentEncoding).to.be('utf8');
                         expect(msg.properties.headers.Level).to.be('NOTICE');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Circuit Test '+msg.fields.deliveryTag+' count='+msg.fields.deliveryTag+'"');
+
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}"`);
 
                         if (msg.fields.deliveryTag === 3) {
                             process.removeListener('log', testf);
@@ -1734,7 +1741,9 @@ describe('ssi-logger', function() {
                         // What goes around...
                         expect(msg.properties.headers.Level).to.be('NOTICE');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Circuit Test '+msg.fields.deliveryTag+' count='+msg.fields.deliveryTag+'"');
+
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}"`);
 
                         switch (msg.fields.deliveryTag) {
                         case 1:
@@ -1789,7 +1798,9 @@ describe('ssi-logger', function() {
                         // What goes around...
                         expect(msg.properties.headers.Level).to.be('NOTICE');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Circuit Test '+msg.fields.deliveryTag+' count='+msg.fields.deliveryTag+'"');
+
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}"`);
 
                         switch (msg.fields.deliveryTag) {
                         case 3:
@@ -1840,7 +1851,9 @@ describe('ssi-logger', function() {
                         // What goes around...
                         expect(msg.properties.headers.Level).to.be('INFO');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Circuit test with circular data object hello=world child.world=peace child.child.bang=war child.child.child=[circular]"');
+
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with circular data object hello=world child.world=peace child.child.bang=war child.child.child=[circular]"`);
 
                         pub.end();
                         done();
@@ -1885,7 +1898,9 @@ describe('ssi-logger', function() {
                         // What goes around...
                         expect(msg.properties.headers.Level).to.be('INFO');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Circuit test with redacted data object hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null"');
+
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with redacted data object hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null"`);
 
                         log.censor([]);
                         pub.end();
@@ -1945,7 +1960,9 @@ describe('ssi-logger', function() {
                         // What goes around...
                         expect(msg.properties.headers.Level).to.be('INFO');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content).to.be('"Assorted data types bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message=\\"You goofed!\\" Error.extra=\\"cream pie\\" Error.inner.name=SyntaxError Error.inner.message=\\"I am blind.\\" Error.inner.inner.name=Error Error.inner.inner.message=\\"Where\'s the kaboom?\\" Error.inner.inner.inner=null Function=\\"[function noop]\\" Date=2017-08-10T13:56:19-04:00 RegExp=\\"/^[Hh]ello .orld$/i\\" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]"');
+
+                        const hdr = msg.properties.headers;
+                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Assorted data types bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message=\\"You goofed!\\" Error.extra=\\"cream pie\\" Error.inner.name=SyntaxError Error.inner.message=\\"I am blind.\\" Error.inner.inner.name=Error Error.inner.inner.message=\\"Where\'s the kaboom?\\" Error.inner.inner.inner=null Function=\\"[function noop]\\" Date=2017-08-10T13:56:19-04:00 RegExp=\\"/^[Hh]ello .orld$/i\\" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]"`);
 
                         pub.end();
                         done();
