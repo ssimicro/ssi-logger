@@ -1612,7 +1612,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Level).to.be('ALERT');
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test hello=world 0=foo 1=bar"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test hello=world 0=foo 1=bar`);
                         pub.end();
                         done();
                     });
@@ -1649,7 +1649,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
 
                         if (msg.fields.deliveryTag === 3) {
                             process.removeListener('log', testf);
@@ -1743,7 +1743,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
 
                         switch (msg.fields.deliveryTag) {
                         case 1:
@@ -1800,7 +1800,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
 
                         switch (msg.fields.deliveryTag) {
                         case 3:
@@ -1853,7 +1853,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with circular data object hello=world child.world=peace child.child.bang=war child.child.child=[circular]"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with circular data object hello=world child.world=peace child.child.bang=war child.child.child=[circular]`);
 
                         pub.end();
                         done();
@@ -1900,7 +1900,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with redacted data object hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with redacted data object hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null`);
 
                         log.censor([]);
                         pub.end();
@@ -1962,7 +1962,7 @@ describe('ssi-logger', function() {
                         expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
                         const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`"${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Assorted data types bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message=\\"You goofed!\\" Error.extra=\\"cream pie\\" Error.inner.name=SyntaxError Error.inner.message=\\"I am blind.\\" Error.inner.inner.name=Error Error.inner.inner.message=\\"Where\'s the kaboom?\\" Error.inner.inner.inner=null Function=\\"[function noop]\\" Date=2017-08-10T13:56:19-04:00 RegExp=\\"/^[Hh]ello .orld$/i\\" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]"`);
+                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Assorted data types bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]`);
 
                         pub.end();
                         done();
