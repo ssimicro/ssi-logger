@@ -2119,5 +2119,5 @@ describe('ssi-logger', function() {
                 });
             });
         });
-    })
+    });
 });
