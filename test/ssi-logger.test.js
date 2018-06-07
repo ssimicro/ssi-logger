@@ -658,6 +658,72 @@ describe('ssi-logger', function() {
         });
     });
 
+    describe('log.configureTransports', () => {
+        let options = {
+            transports: {
+                console: {enable: true},
+                capture: {enable: true},
+            },
+        };
+
+        beforeEach((done) => {
+            log.censor([]);
+            done();
+        });
+
+        it('should log to console without user transports', (done) => {
+            log.configureTransports(options.transports);
+            const loggers = process.listeners("log");
+            expect(loggers.length).to.be(1);
+            log.info("hello world");
+            process.removeAllListeners("log");
+            done();
+        });
+        it('should log to console and user transports', (done) => {
+            log.configureTransports(options.transports, {
+                capture: (options) => {
+                    return function captureLogClosure(log_event) {
+                        expect(log_event).not.to.be(null);
+                        expect(log_event.message).to.be("hello world");
+                        process.removeAllListeners("log");
+                        done();
+                    }
+                },
+            });
+
+            const loggers = process.listeners("log");
+            expect(loggers.length).to.be(2);
+            log.info("hello world");
+        });
+        it('should be able configure transports more than once', (done) => {
+            log.configureTransports(options.transports, {
+                capture: (options) => {
+                    return function captureLogClosure(log_event) {
+                        expect(log_event).not.to.be(null);
+                        expect(log_event.message).to.be("hello world");
+                    }
+                },
+            });
+
+            let loggers = process.listeners("log");
+            expect(loggers.length).to.be(2);
+            log.info("hello world");
+
+            log.configureTransports(options.transports, {
+                capture: (options) => {
+                    return function captureLogClosure(log_event) {
+                        process.removeAllListeners("log");
+                        done();
+                    }
+                },
+            });
+
+            loggers = process.listeners("log");
+            expect(loggers.length).to.be(2);
+            log.info("bye bye");
+        });
+    });
+
     describe('amqpTransport payload preparation', function () {
         let options = {
             amqpTransport: {

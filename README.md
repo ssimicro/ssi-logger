@@ -185,15 +185,35 @@ Here's a setup example for a project using multiple transports to log messages. 
 This is a very powerful pattern. It allows for many different combinations of actions. For example, one could write
 a transport such that a LOG_ALERT message about the database being down will trigger an e-mail to go out to the sysadmin.
 
-## log.configureTransports(transports)
+## log.configureTransports(transportOptions[, userTransports])
 
 **Parameters**
 
-`transports`: contains one or more transports to configure
+`transportOptions`: contains one or more transports to configure
    - `amqp`: optional AMQP transport options, see below
    - `console`: optional console transport options, see below
    - `stream`: optional stream transport options, see below
    - `syslog`: optional SysLog transport options, see below
+   - `user_transport`: optional options for a `user_transport`
+
+`userTransports`: an object with one or more user transport functions.
+
+    log.configureTransports({
+        console: {enable: process.env.NODE_ENV !== 'production'},
+        syslog: {enable: process.env.NODE_ENV === 'production'},
+        tripwire: {enable: process.env.NODE_ENV !== 'production'},
+    }, {
+        tripwire: function tripwireTransport(options) {
+            return function tripwireClosure(log_event) {
+                options.patterns.forEach((pattern) => {
+                    if (pattern.test(log_event.message)){
+                        console.log("Run for the hills.");
+                        process.exit(1);
+                    }
+                }
+            };
+        }
+    });
 
 
 ## Available Transports
