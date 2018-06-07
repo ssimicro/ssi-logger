@@ -196,7 +196,7 @@ a transport such that a LOG_ALERT message about the database being down will tri
    - `syslog`: optional SysLog transport options, see below
    - `user_transport`: optional options for a `user_transport`
 
-`userTransports`: an object with one or more user transport functions.
+`userTransports`: an object with one or more user transport functions.  For example:
 
     log.configureTransports({
         console: {enable: process.env.NODE_ENV !== 'production'},
@@ -214,6 +214,19 @@ a transport such that a LOG_ALERT message about the database being down will tri
             };
         }
     });
+
+### Log Event
+
+The `log_event` passed to log event transport handlers is an object with the following fields:
+
+    {
+        version: '1.0.0',       // Version number following https://semver.org/ guidelines.
+        created: ... ,          // JavaScript Date when the event occurred
+        host: ... ,             // Host name string.
+        level: ... ,            // Log level string.
+        message: ... ,          // Formatted log message.
+        data: [ ... ],          // Array of censored log() arguments.
+    }
 
 
 ## Available Transports
