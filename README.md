@@ -150,7 +150,6 @@ Standard Log Levels (highest to lowest):
 
     EMERG, ALERT, CRIT, ERROR, WARN, NOTICE, INFO, DEBUG
 
-
 ## Transports
 
 Log messages are emitted as `log` events. Event listeners should be installed to receive the events and send them over
@@ -185,19 +184,77 @@ Here's a setup example for a project using multiple transports to log messages. 
 This is a very powerful pattern. It allows for many different combinations of actions. For example, one could write
 a transport such that a LOG_ALERT message about the database being down will trigger an e-mail to go out to the sysadmin.
 
-## log.configureTransports(transportOptions[, userTransports])
+
+## API
+
+### log(level, format, args ...)
 
 **Parameters**
 
-`transportOptions`: contains one or more transports to configure
+* `level`: log level string, one of `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`.
+* `format`: a log message format string.
+* `args`: the `format` string will consume `args` for each % argument in the string.  Remaining arguments are appended to the log message, with objects and arrays beening flattened into key=value pairs.
+
+#### log.emerg(format, args ...)
+#### log.alert(format, args ...)
+#### log.crit(format, args ...)
+#### log.error(format, args ...)
+#### log.warn(format, args ...)
+#### log.notice(format, args ...)
+#### log.info(format, args ...)
+#### log.debug(format, args ...)
+
+Convience functions.
+
+### log.censor()
+
+Returns a list of fields that are presently being censored from all log messages.
+
+Example:
+
+    // get the list of censored fields
+    console.log(log.censor());
+    // prints --> [ 'card_number', /pass(word)?/ ]
+
+
+### log.censor(arr)
+
+Sets the list of fields to censor from all log messages.  Any number of fields may be censored.  This is useful when logging request objects to avoid accidentally logging a credit card number, password, or other sensitive information.
+
+**Parameters**
+
+* `arr`: an array which may contain any combination of strings and regular expression objects. The strings and regular expressions are used to match against the log message. To turn off censorship, call this function with an empty array `[]`.
+
+**Example**
+
+    // set the list
+    log.censor([ 'card_number', /pass(word)?/ ]);
+
+    log('INFO', 'first_name=John last_name=Doe card_number=1234123412341234 password=pizza');
+    log('INFO', 'first_name=%s last_name=%s card_number=%s password=%s', first_name_var, last_name_var, card_number_var, password_var);
+    log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234', password: 'pizza' });
+
+    // each one above emits the same thing -->
+    // { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted] password=[redacted]' }
+
+
+### log.close()
+
+Close the transports like `syslog` and `amqp`.
+
+### log.configureTransports(transportOptions[, userTransports])
+
+**Parameters**
+
+* `transportOptions`: contains one or more transports to configure
    - `amqp`: optional AMQP transport options, see below
    - `console`: optional console transport options, see below
    - `stream`: optional stream transport options, see below
    - `syslog`: optional SysLog transport options, see below
    - `user_transport`: optional options for a `user_transport`
 
-`userTransports`: an object with one or more user transport functions.  For example:
-
+* `userTransports`: an object with one or more user transport functions.  For example:
+```
     log.configureTransports({
         console: {enable: process.env.NODE_ENV !== 'production'},
         syslog: {enable: process.env.NODE_ENV === 'production'},
@@ -214,26 +271,26 @@ a transport such that a LOG_ALERT message about the database being down will tri
             };
         }
     });
+```
 
 ### Log Event
 
 The `log_event` passed to log event transport handlers is an object with the following fields:
 
-    {
-        version: '1.0.0',       // Version number following https://semver.org/ guidelines.
-        created: ... ,          // JavaScript Date when the event occurred
-        host: ... ,             // Host name string.
-        level: ... ,            // Log level string.
-        message: ... ,          // Formatted log message.
-        data: [ ... ],          // Array of censored log() arguments.
-    }
+`log_event`:
+  - `version`: Version number following https://semver.org/ guidelines.  Currently `1.0.0`.
+  - `created`: JavaScript Date when the event occurred.
+  - `host`: Host name string.
+  - `level`: Log level string.
+  - `message`: Formatted log message.
+  - `data`: An array of the censored log() arguments.
 
 
-## Available Transports
+### Available Transports
 
 Here are the available transports.
 
-### lib/transports/amqp
+#### lib/transports/amqp
 
 Log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `$TMPDIR/$PROCESS_NAME.stack` and attempt to reconnect if so configured.  If  `$TMPDIR` is undefined, the default is `/var/tmp`.
 
@@ -270,7 +327,7 @@ Example:
     });
 
 
-### lib/transports/console
+#### lib/transports/console
 
 **Parameters**
 
@@ -295,7 +352,7 @@ Colors can also be disabled at runtime with the `--no-color` command line option
     });
 
 
-### lib/transports/stream ###
+#### lib/transports/stream ###
 
 **Parameters**
 
@@ -320,7 +377,7 @@ Colors can also be disabled at runtime with the `--no-color` command line option
     });
 
 
-### lib/transports/syslog ###
+#### lib/transports/syslog ###
 
 **Parameters**
 
@@ -347,8 +404,20 @@ Examples:
         syslog: {facility: 'LOG_LOCAL3', level: 'DEBUG'}
     });
 
+### log.defaults(...)
 
-#### Configuring syslog on Mac OS X
+Returns a new curried `log()` function with baked in parameters that are included in all log messages.
+
+Example:
+
+    var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+    mylog('INFO', 'I love golf!');
+
+    // emits --> { level: 'INFO', message: 'I love golf! request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar' }
+
+
+## Configuring syslog on Mac OS X
 
 Edit `/etc/syslog.conf`:
 
@@ -367,7 +436,7 @@ Test with `logger`:
     logger -p local5.info "Test"
     tail /var/log/local5.log
 
-#### Configuring rsyslog on Debain
+## Configuring rsyslog on Debain
 
 Edit `/etc/rsyslog.conf`:
 
@@ -413,52 +482,6 @@ At present, the log events are objects that have `level` and `message` propertie
     if (printerOnFire) {
         log('EMERG', '/dev/lp0 on fire!');
     }
-
-## Censorship
-
-Any number of fields may be censored. This is useful when logging request objects to avoid accidentally logging
-a credit card number, password, or other sensitive information.
-
-### API
-
-#### log.defaults(...)
-
-Returns a new curried `log()` function with baked in parameters that are included in all log messages.
-
-Example:
-
-    var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
-
-    mylog('INFO', 'I love golf!');
-
-    // emits --> { level: 'INFO', message: 'I love golf! request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar' }
-
-
-#### log.censor(arr)
-
-Sets the list of fields to censor from all log messages. The parameter `arr` is an array which may contain any combination of strings and regular expression objects. The strings and regular expressions are used to match against the log message. To turn off censorship, call this function with an empty array `[]`.
-
-Example:
-
-    // set the list
-    log.censor([ 'card_number', /pass(word)?/ ]);
-
-    log('INFO', 'first_name=John last_name=Doe card_number=1234123412341234 password=pizza');
-    log('INFO', 'first_name=%s last_name=%s card_number=%s password=%s', first_name_var, last_name_var, card_number_var, password_var);
-    log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234', password: 'pizza' });
-
-    // each one above emits the same thing -->
-    // { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted] password=[redacted]' }
-
-#### log.censor()
-
-Returns a list of fields that are presently being censored from all log messages.
-
-Example:
-
-    // get the list of censored fields
-    console.log(log.censor());
-    // prints --> [ 'card_number', /pass(word)?/ ]
 
 ## Testing
 
