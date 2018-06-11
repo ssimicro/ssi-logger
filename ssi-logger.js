@@ -97,16 +97,37 @@ function defaults() {
     return defaultLog;
 }
 
+var activeConfig = {};
+const activeTransports = {};
+
+function dispatcher(event) {
+    Object.keys(activeTransports).forEach((transport) => activeTransports[transport].log(event));
+}
+
+function disableTransports() {
+    Object.keys(activeTransports).forEach((transport) => {
+        activeTransports[transport].end();
+        delete activeTransports[transport];
+    });
+}
+
+function enableTransports() {
+    configureTransports(activeConfig);
+}
+
 // Install a transport if options contains a property with a name
 // that matches a known transport and has `enable` set to `true`.
 function configureTransports(options, user_transports) {
-    process.removeAllListeners('log');
+    process.removeListener('log', dispatcher);
+    disableTransports();
+    activeConfig = options;
     _.merge(transports, user_transports);
     _.forEach(options, (args, transport) => {
         if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(transports, transport)) {
-            process.on('log', transports[transport](args));
+            activeTransports[transport] = new transports[transport](args);
         }
     });
+    process.on('log', dispatcher);
 }
 
 function transformLogEvent(log_event) {
@@ -129,9 +150,13 @@ function transformLogEvent(log_event) {
 // Public API
 module.exports = log;
 module.exports.censor = censor;
+module.exports.close = disableTransports;
 module.exports.defaults = defaults;
 module.exports.level_names = level_names;
+module.exports.activeTransports = activeTransports;
 module.exports.configureTransports = configureTransports;
+module.exports.disableTransports = disableTransports;
+module.exports.enableTransports = enableTransports;
 module.exports.transformLogEvent = transformLogEvent;
 
 function addConvenienceFunctions(logger) {

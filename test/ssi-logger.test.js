@@ -1,14 +1,15 @@
 
 "use strict";
 
-var _ = require('lodash');
-var expect = require('expect.js');
-var fs = require('fs');
-var log = require('../');
-var os = require('os');
-var path = require('path');
-var filterObject = require('../lib/filterObject.js');
-var amqpTransport = require('../lib/transports/amqp.js');
+const _ = require('lodash');
+const expect = require('expect.js');
+const fs = require('fs');
+const log = require('../');
+const os = require('os');
+const path = require('path');
+const Transport = require('../lib/Transport');
+const filterObject = require('../lib/filterObject.js');
+const AmqpTransport = require('../lib/transports/amqp.js');
 
 const optDescribe = (process.env.TESTALL === 'YES' ? describe : describe.skip);
 const optIt = (process.env.TESTALL === 'YES' ? it : it.skip);
@@ -485,18 +486,18 @@ describe('ssi-logger', function() {
 
     describe("convertArraysToObjects", function () {
         it("should clone an array into an object", (done) => {
-            expect(amqpTransport.convertArraysToObjects([])).to.eql({});
-            expect(amqpTransport.convertArraysToObjects(["hello", "world", "sniff"])).to.eql({0: "hello", 1: "world", 2: "sniff"});
+            expect(AmqpTransport.convertArraysToObjects([])).to.eql({});
+            expect(AmqpTransport.convertArraysToObjects(["hello", "world", "sniff"])).to.eql({0: "hello", 1: "world", 2: "sniff"});
             done();
         });
         it("should clone an object", (done) => {
-            expect(amqpTransport.convertArraysToObjects({})).to.eql({});
-            expect(amqpTransport.convertArraysToObjects({hello: "world"})).to.eql({hello: "world"});
+            expect(AmqpTransport.convertArraysToObjects({})).to.eql({});
+            expect(AmqpTransport.convertArraysToObjects({hello: "world"})).to.eql({hello: "world"});
             done();
         });
         it("should not modify the original object", (done) => {
             const array = ["hello", "world", "sniff"];
-            const obj = amqpTransport.convertArraysToObjects(array);
+            const obj = AmqpTransport.convertArraysToObjects(array);
             expect(obj).not.to.be(array);
             expect(obj).to.eql({0: "hello", 1: "world", 2: "sniff"});
             done();
@@ -508,7 +509,7 @@ describe('ssi-logger', function() {
                 hello: "world",
                 array1: [ 1, { array2: [ "foo", "bar" ], bat: "flying mouse"}, 3]
             }, "ugh"];
-            expect(amqpTransport.convertArraysToObjects(array)).to.eql({
+            expect(AmqpTransport.convertArraysToObjects(array)).to.eql({
                 0: "hello",
                 1: {
                     level: 1,
@@ -531,7 +532,7 @@ describe('ssi-logger', function() {
             done();
         });
         it("should convert Date object into ISO 8601 date string", (done) => {
-            const obj = amqpTransport.convertArraysToObjects({date: new Date("23 April 2018 11:43")});
+            const obj = AmqpTransport.convertArraysToObjects({date: new Date("23 April 2018 11:43")});
             expect(obj.date).to.be.a(Date);
             expect(obj.date).to.eql(new Date("2018-04-23T15:43:00.000Z"));
             done();
@@ -676,406 +677,453 @@ describe('ssi-logger', function() {
             const loggers = process.listeners("log");
             expect(loggers.length).to.be(1);
             log.info("hello world");
-            process.removeAllListeners("log");
+            log.close();
             done();
         });
         it('should log to console and user transports', (done) => {
-            log.configureTransports(options.transports, {
-                capture: (options) => {
-                    return function captureLogClosure(log_event) {
-                        expect(log_event).not.to.be(null);
-                        expect(log_event.message).to.be("hello world");
-                        process.removeAllListeners("log");
-                        done();
-                    }
-                },
-            });
+            class Capture extends Transport {
+                log(log_event) {
+                    expect(log_event).not.to.be(null);
+                    expect(log_event.message).to.be("hello world");
+                    log.close();
+                    done();
+                }
+            };
+
+            log.configureTransports(options.transports, {capture: Capture});
 
             const loggers = process.listeners("log");
-            expect(loggers.length).to.be(2);
+            expect(loggers.length).to.be(1);
             log.info("hello world");
         });
         it('should be able configure transports more than once', (done) => {
-            log.configureTransports(options.transports, {
-                capture: (options) => {
-                    return function captureLogClosure(log_event) {
-                        expect(log_event).not.to.be(null);
-                        expect(log_event.message).to.be("hello world");
-                    }
-                },
-            });
+            class Capture1 extends Transport {
+                log(log_event) {
+                    expect(log_event).not.to.be(null);
+                    expect(log_event.message).to.be("hello world");
+                }
+            };
+
+            class Capture2 extends Transport {
+                log(log_event) {
+                    log.close();
+                    done();
+                }
+            };
+
+            log.configureTransports(options.transports, {capture: Capture1});
 
             let loggers = process.listeners("log");
-            expect(loggers.length).to.be(2);
+            expect(loggers.length).to.be(1);
             log.info("hello world");
 
-            log.configureTransports(options.transports, {
-                capture: (options) => {
-                    return function captureLogClosure(log_event) {
-                        process.removeAllListeners("log");
-                        done();
-                    }
-                },
-            });
+            log.configureTransports(options.transports, {capture: Capture2});
 
             loggers = process.listeners("log");
-            expect(loggers.length).to.be(2);
+            expect(loggers.length).to.be(1);
             log.info("bye bye");
         });
     });
 
-    describe('amqpTransport payload preparation', function () {
+    optDescribe('AmqpTransport', function () {
+        this.timeout(5000);
+
         let options = {
-            amqpTransport: {
-                format: 'text',
+            transports: {
+                amqp: {
+                    format: 'text',
+                }
             }
         };
         try {
-            options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
+            _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
         } catch (err) {
             console.error(err);
         }
 
+        let transport;
+
         beforeEach((done) => {
-            log.censor([]);
+            transport = null;
             done();
         });
 
-        describe('payload preparation format=text', function () {
-            it('should have null message', function (done) {
-                let pub;
+        afterEach((done) => {
+            if (transport) {
+                transport.end();
+            }
+            done();
+        });
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info();
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: `);
-                    done();
-                });
+        describe('connect', function () {
+            it('should fail for invalid credentials', function (done) {
+                expect(() => {
+                    new AmqpTransport({
+                        url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
+                        onConnectError: (err) => { throw err; },
+                    });
+                }).to.throwError();
+                done();
             });
-            it('should have simple message', function (done) {
-                let pub;
+            it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
+                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                transport.amqp.on('error', (err) => {
+                    expect(err).not.be(null);
+                    expect(transport.amqp.conn).to.be(null);
                     done();
                 });
+
+                transport.amqp.bail(new Error('error triggered by test'));
             });
-            it('should have null message and some data', function (done) {
-                let pub;
+            it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
+                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info({"hello": "world"}, ["foo", "bar"]);
-                });
+                const conn_before = transport.amqp.conn;
+                transport.amqp.bail(new Error('error triggered by test'));
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: hello=world 0=foo 1=bar`);
+                setTimeout(() => {
+                    expect(transport.amqp.conn).not.to.be(null);
+                    expect(transport.amqp.conn).not.to.be(conn_before);
                     done();
-                });
+                }, 2000);
             });
-            it('should take an Error like first argument as the log message and name', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info({name: 'ERROR_NAME', message: 'an error message'});
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: name=ERROR_NAME message="an error message"`);
-                    done();
-                });
+            it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
+                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
+                transport.amqp.closed();
+                expect(transport.amqp.conn).to.be(null);
+                done();
             });
-            it('should have simple message and some data', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever. hello=world 0=foo 1=bar`);
-                    done();
-                });
+            it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
+                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
+                transport.amqp.closed();
+                expect(transport.amqp.conn).to.be(null);
+                done();
             });
-            it('should format printf-style message, remainder as data', function (done) {
-                let pub;
+            it('should reconnect on closed error when reconnect.retryTimeout > 0', function (done) {
+                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
+                const conn_before = transport.amqp.conn;
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
-                });
+                transport.amqp.closed(new Error('error triggered by test'));
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar`);
+                setTimeout(() => {
+                    expect(transport.amqp.conn).not.to.be(null);
+                    expect(transport.amqp.conn).not.to.be(conn_before);
                     done();
-                });
-            });
-            it('should append non-objects to message', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Append", "Jack", 123, 543.21, true, new Error('goofed'), {"hello": "world"}, ["foo", "bar"]);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Append Jack 123 543.21 true name=Error message=goofed hello=world 0=foo 1=bar`);
-                    done();
-                });
-            });
-            it('should format message, remainder as data with added defaults', function (done) {
-                let pub;
-
-                const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar`);
-                    done();
-                });
-            });
-            it('should handle data with cicular reference', function (done) {
-                const obj = {
-                    hello: "world",
-                    child: {
-                        world: "peace",
-                        child: {
-                            bang: "war",
-                            child: null
-                        }
-                    }
-                };
-                // Create a circular reference.
-                obj.child.child.child = obj.child;
-
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Object with circular reference.", obj);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=world child.world=peace child.child.bang=war child.child.child=[circular]`);
-                    done();
-                });
-            });
-            it('should handle data with redacted content', function (done) {
-                const obj = {
-                    hello: "world",
-                    child: {
-                        world: "peace",
-                        child: {
-                            bang: "war",
-                            child: null
-                        }
-                    }
-                };
-
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.censor(['bang', /ello/]);
-                    log.info("Object with circular reference.", obj);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null`);
-                    log.censor([]);
-                    done();
-                });
-            });
-            it('should handle data with special types and values', function (done) {
-                const basics = {
-                    "bool": true,
-                    "int": 123456,
-                    "decimal": 1234.56,
-                    "string": "(wave)",
-                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
-                };
-
-                const error = new Error('You goofed!');
-                error.extra = "cream pie";
-                error.inner = new SyntaxError("I am blind.");
-                error.inner.inner = new Error("Where's the kaboom?");
-                error.inner.inner.inner = null;
-
-                const specials = {
-                    "null": null,
-                    "undefined": undefined,
-                    "Error": error,
-                    "Function": function noop() { },
-                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                    "RegExp": /^[Hh]ello .orld$/i,
-                    "Infinity": Infinity,
-                    "NegInfinity": -Infinity,
-                    "NaN": NaN,
-                };
-
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Special types and values.", basics, specials);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Special types and values. bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]`);
-                    done();
-                });
+                }, 2000);
             });
         });
-        describe('payload preparation format=json', function () {
-            before((done) => {
-                options.amqpTransport.format = 'json';
+
+        describe('queue', function () {
+            beforeEach((done) => {
+                log.censor([]);
                 done();
             });
 
-            after((done) => {
-                options.amqpTransport.format = 'text';
+            afterEach((done) => {
+                log.close();
                 done();
             });
 
-            it('should have null message', function (done) {
-                let pub;
+            it('should queue log message', function (done) {
+                log.configureTransports(options.transports);
+                // Disconnect and queue messages for examination.
+                log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
+                log.info("Say something clever.");
+
+                const queue = log.activeTransports.amqp.amqp.queue;
+                expect(queue.length).to.be(1);
+                const hdr = queue[0].publishOptions.headers;
+                expect(hdr.Level).to.be('INFO');
+                expect(hdr.Facility).to.be('LOCAL0');
+                expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                done();
+            });
+            it('should filter log messages below ERROR', function (done) {
+                log.configureTransports(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports));
+                // Disconnect and queue messages for examination.
+                log.activeTransports.amqp.end();
+
+                log.debug("Say something clever.");
+                log.warning("Hey little sister, what have you done?");
+                expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+                done();
+            });
+            it('should not filter log message ERROR or above', function (done) {
+                log.configureTransports(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports));
+                // Disconnect and queue messages for examination.
+                log.activeTransports.amqp.end();
+
+                log.error("Say something clever.");
+                log.alert("Hey little sister, what have you done?");
+
+                const queue = log.activeTransports.amqp.amqp.queue;
+                expect(queue.length).to.be(2);
+
+                let hdr;
+
+                hdr = queue[0].publishOptions.headers;
+                expect(hdr.Level).to.be('ERROR');
+                expect(hdr.Facility).to.be('DAEMON');
+                expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+
+                hdr = queue[1].publishOptions.headers;
+                expect(hdr.Level).to.be('ALERT');
+                expect(hdr.Facility).to.be('DAEMON');
+                expect(queue[1].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Hey little sister, what have you done?`);
+
+                done();
+            });
+        });
+
+        describe('payload preparation', function () {
+            beforeEach((done) => {
+                log.configureTransports(options.transports);
+                log.censor([]);
+                done();
+            });
+
+            afterEach((done) => {
+                log.close();
+                done();
+            });
+
+            describe('format=text', function () {
+                it('should have null message', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
                     log.info();
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: `);
+                    done();
+                });
+                it('should have simple message', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info("Say something clever.");
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                    done();
+                });
+                it('should have null message and some data', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info({"hello": "world"}, ["foo", "bar"]);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: hello=world 0=foo 1=bar`);
+                    done();
+                });
+                it('should take an Error like first argument as the log message and name', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info({name: 'ERROR_NAME', message: 'an error message'});
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: name=ERROR_NAME message="an error message"`);
+                    done();
+                });
+                it('should have simple message and some data', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue.length).to.be(1);
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever. hello=world 0=foo 1=bar`);
+                    done();
+                });
+                it('should format printf-style message, remainder as data', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar`);
+                    done();
+                });
+                it('should append non-objects to message', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info("Append", "Jack", 123, 543.21, true, new Error('goofed'), {"hello": "world"}, ["foo", "bar"]);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Append Jack 123 543.21 true name=Error message=goofed hello=world 0=foo 1=bar`);
+                    done();
+                });
+                it('should format message, remainder as data with added defaults', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+
+                    mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar`);
+                    done();
+                });
+                it('should handle data with cicular reference', function (done) {
+                    const obj = {
+                        hello: "world",
+                        child: {
+                            world: "peace",
+                            child: {
+                                bang: "war",
+                                child: null
+                            }
+                        }
+                    };
+                    // Create a circular reference.
+                    obj.child.child.child = obj.child;
+
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info("Object with circular reference.", obj);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=world child.world=peace child.child.bang=war child.child.child=[circular]`);
+                    done();
+                });
+                it('should handle data with redacted content', function (done) {
+                    const obj = {
+                        hello: "world",
+                        child: {
+                            world: "peace",
+                            child: {
+                                bang: "war",
+                                child: null
+                            }
+                        }
+                    };
+
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.censor(['bang', /ello/]);
+                    log.info("Object with circular reference.", obj);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null`);
+                    done();
+                });
+                it('should handle data with special types and values', function (done) {
+                    const basics = {
+                        "bool": true,
+                        "int": 123456,
+                        "decimal": 1234.56,
+                        "string": "(wave)",
+                        "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+                    };
+
+                    const error = new Error('You goofed!');
+                    error.extra = "cream pie";
+                    error.inner = new SyntaxError("I am blind.");
+                    error.inner.inner = new Error("Where's the kaboom?");
+                    error.inner.inner.inner = null;
+
+                    const specials = {
+                        "null": null,
+                        "undefined": undefined,
+                        "Error": error,
+                        "Function": function noop() { },
+                        "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                        "RegExp": /^[Hh]ello .orld$/i,
+                        "Infinity": Infinity,
+                        "NegInfinity": -Infinity,
+                        "NaN": NaN,
+                    };
+
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info("Special types and values.", basics, specials);
+
+                    const queue = log.activeTransports.amqp.amqp.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Special types and values. bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]`);
+                    done();
+                });
+            });
+
+            describe('format=json', function () {
+                before((done) => {
+                    options.transports.amqp.format = 'json';
+                    done();
                 });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
+                after((done) => {
+                    options.transports.amqp.format = 'text';
+                    done();
+                });
 
-                    const payload = pub.queue[0].payload;
+                it('should have null message', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
+
+                    log.info();
+
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be(null);
                     expect(payload).to.have.key('log_metadata');
                     expect(payload.log_metadata.Level).to.be('INFO');
                     expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     done();
                 });
-            });
-            it('should have simple message', function (done) {
-                let pub;
+                it('should have simple message', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info("Say something clever.");
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
                     expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_message).to.be("Say something clever.");
                     done();
                 });
-            });
-            it('should have null message and some data', function (done) {
-                let pub;
+                it('should have null message and some data', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info({"hello": "world"}, ["foo", "bar"]);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be(null);
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1084,22 +1132,14 @@ describe('ssi-logger', function() {
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     done();
                 });
-            });
-            it('should take an Error like first argument as the log message and name', function (done) {
-                let pub;
+                it('should take an Error like first argument as the log message and name', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info({name: 'ERROR_NAME', message: 'an error message'});
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be('an error message');
                     expect(payload).to.have.keys('log_name', 'log_metadata');
                     expect(payload.log_name).to.be('ERROR_NAME');
@@ -1107,22 +1147,14 @@ describe('ssi-logger', function() {
                     expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     done();
                 });
-            });
-            it('should have simple message and some data', function (done) {
-                let pub;
+                it('should have simple message and some data', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1131,22 +1163,14 @@ describe('ssi-logger', function() {
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     done();
                 });
-            });
-            it('should format printf-style message, remainder as data', function (done) {
-                let pub;
+                it('should format printf-style message, remainder as data', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever, Jack N=123.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1155,24 +1179,16 @@ describe('ssi-logger', function() {
                     expect(payload.log_details[1]).to.eql({"0": "foo", "1": "bar"});
                     done();
                 });
-            });
-            it('should format message, remainder as data with added defaults', function (done) {
-                let pub;
+                it('should format message, remainder as data with added defaults', function (done) {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+                    const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever, Jack N=123.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1183,35 +1199,27 @@ describe('ssi-logger', function() {
                     expect(payload.log_details[3]).to.be("foobar");
                     done();
                 });
-            });
-            it('should handle data with cicular reference', function (done) {
-                const obj = {
-                    hello: "world",
-                    child: {
-                        world: "peace",
+                it('should handle data with cicular reference', function (done) {
+                    const obj = {
+                        hello: "world",
                         child: {
-                            bang: "war",
-                            child: null
+                            world: "peace",
+                            child: {
+                                bang: "war",
+                                child: null
+                            }
                         }
-                    }
-                };
-                // Create a circular reference.
-                obj.child.child.child = obj.child;
+                    };
+                    // Create a circular reference.
+                    obj.child.child.child = obj.child;
 
-                let pub;
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info("Object with circular reference.", obj);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be("Object with circular reference.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1219,85 +1227,68 @@ describe('ssi-logger', function() {
                     expect(payload.log_details[0].child.child.child).to.be("[circular]");
                     done();
                 });
-            });
-            it('should handle data with redacted content', function (done) {
-                const obj = {
-                    hello: "world",
-                    child: {
-                        world: "peace",
+                it('should handle data with redacted content', function (done) {
+                    const obj = {
+                        hello: "world",
                         child: {
-                            bang: "war",
-                            child: null
+                            world: "peace",
+                            child: {
+                                bang: "war",
+                                child: null
+                            }
                         }
-                    }
-                };
+                    };
 
-                let pub;
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.censor(['bang', /ello/]);
                     log.info("Object with redacted content.", obj);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be("Object with redacted content.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
                     expect(payload.log_metadata.Facility).to.be('LOCAL0');
                     expect(payload.log_details[0].hello).to.be("[redacted]");
                     expect(payload.log_details[0].child.child.bang).to.be("[redacted]");
-                    log.censor([]);
                     done();
                 });
-            });
-            it('should handle data with special types and values', function (done) {
-                const basics = {
-                    "bool": true,
-                    "int": 123456,
-                    "decimal": 1234.56,
-                    "string": "(wave)",
-                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
-                };
+                it('should handle data with special types and values', function (done) {
+                    const basics = {
+                        "bool": true,
+                        "int": 123456,
+                        "decimal": 1234.56,
+                        "string": "(wave)",
+                        "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
+                    };
 
-                const error = new Error('You goofed!');
-                error.extra = "cream pie";
-                error.inner = new SyntaxError("I am blind.");
-                error.inner.inner = new Error("Where's the kaboom?");
-                error.inner.inner.inner = null;
+                    const error = new Error('You goofed!');
+                    error.extra = "cream pie";
+                    error.inner = new SyntaxError("I am blind.");
+                    error.inner.inner = new Error("Where's the kaboom?");
+                    error.inner.inner.inner = null;
 
-                const specials = {
-                    "null": null,
-                    "undefined": undefined,
-                    "Error": error,
-                    "Function": function noop() { },
-                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                    "RegExp": /^[Hh]ello .orld$/i,
-                    "Infinity": Infinity,
-                    "NegInfinity": -Infinity,
-                    "NaN": NaN,
-                };
+                    const specials = {
+                        "null": null,
+                        "undefined": undefined,
+                        "Error": error,
+                        "Function": function noop() { },
+                        "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
+                        "RegExp": /^[Hh]ello .orld$/i,
+                        "Infinity": Infinity,
+                        "NegInfinity": -Infinity,
+                        "NaN": NaN,
+                    };
 
-                let pub;
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
                     log.info("Special types and values.", basics, specials);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    const payload = pub.queue[0].payload;
+                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
                     expect(payload.log_message).to.be("Special types and values.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1347,264 +1338,15 @@ describe('ssi-logger', function() {
                 });
             });
         });
-    });
-    optDescribe('amqpTransport', function () {
-        let options = {
-            amqpTransport: {
-                format: 'text',
-            }
-        };
-        try {
-            options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
-        } catch (err) {
-            console.error(err);
-        }
 
-        describe('connect', function () {
-            this.timeout(5000);
-
-            it('should fail for invalid credentials', function (done) {
-                amqpTransport({
-                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com'
-                }, (err, publisher) => {
-                    expect(err).not.to.be(null);
-                    expect(err).to.be.an(Error);
-                    done();
-                });
-            });
-            it('should return a handler', function (done) {
-                expect(amqpTransport(options.amqpTransport, (err, publisher) => publisher.end())).to.be.a('function');
-                done();
-            });
-            it('should return a handler when no options argument', function (done) {
-                expect(amqpTransport((err, publisher) => publisher.end())).to.be.a('function');
-                done();
-            });
-            it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-
-                    producer.on('error', (err) => {
-                        expect(err).not.be(null);
-                        expect(producer.conn).to.be(null);
-                        done();
-                    });
-
-                    producer.bail(new Error('error triggered by test'));
-                });
-            });
-            it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-                    producer.bail(new Error('error triggered by test'));
-
-                    setTimeout(() => {
-                        expect(producer.conn).not.to.be(null);
-                        expect(producer.conn).not.to.be(conn_before);
-                        producer.end();
-                        done();
-                    }, 2000);
-                });
-            });
-            it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    producer.closed();
-                    expect(producer.conn).to.be(null);
-                    done();
-                });
-            });
-            it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    producer.closed();
-                    expect(producer.conn).to.be(null);
-                    done();
-                });
-            });
-            it('should reconnect on closed error when reconnect.retryTimeout > 0', function (done) {
-                amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-
-                    producer.closed(new Error('error triggered by test'));
-
-                    setTimeout(() => {
-                        expect(producer.conn).not.to.be(null);
-                        expect(producer.conn).not.to.be(conn_before);
-                        producer.end();
-                        done();
-                    }, 2000);
-                });
-            });
-            it('should retry reconnection until reconnect.retryTimeout reached', function (done) {
-                amqpTransport({
-                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
-                    reconnect: {
-                        retryTimeout: 2,
-                        retryDelay: 1,
-                    }
-                }, (err, producer) => {
-                    expect(err).not.to.be(null);
-
-                    producer.once('error', (err) => {
-                        expect(err.attempts).to.be(2);
-                        producer.end();
-                        done();
-                    });
-
-                    producer.bail(new Error('error triggered by test'));
-                });
-            });
-        });
-
-        describe('queue', function () {
-            it('should queue log message', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.info("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(hdr.Level).to.be('INFO');
-                    expect(hdr.Facility).to.be('LOCAL0');
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
-                    done();
-                });
-            });
-            it('should filter log messages below INFO', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.debug("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(0);
-                    done();
-                });
-            });
-            it('should filter log messages below ERROR', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.warning("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(0);
-                    done();
-                });
-            });
-            it('should not filter log message ERROR or above', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.error("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(hdr.Level).to.be('ERROR');
-                    expect(hdr.Facility).to.be('DAEMON');
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
-                    done();
-                });
-            });
-
-            it('should not filter log message ERR (ERROR) or above', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'ERROR', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.err("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(hdr.Level).to.be('ERROR');
-                    expect(hdr.Facility).to.be('DAEMON');
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
-                    done();
-                });
-            });
-
-            it('should not filter log message WARNING (WARN) or above', function (done) {
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({level: 'WARN', facility: 'DAEMON'}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    publisher.end();
-                    pub = publisher;
-                    log.warning("Say something clever.");
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    expect(pub).not.to.be(null);
-                    expect(pub.queue.length).to.be(1);
-
-                    const hdr = pub.queue[0].publishOptions.headers;
-                    expect(hdr.Level).to.be('WARN');
-                    expect(hdr.Facility).to.be('DAEMON');
-                    expect(pub.queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
-                    done();
-                });
-            });
-        });
-        describe("AMQP circuit", function () {
-            this.timeout(5000);
-
+        describe("circuit", function () {
+            this.timeout(10000);
             const AmqpConsume = require('./AmqpConsume');
 
             let consumer;
 
             beforeEach(function (done) {
+                log.censor([]);
                 consumer = new AmqpConsume(_.defaultsDeep({
                     routingKeys: [ "log.#" ],
                     queueName: '',
@@ -1613,7 +1355,7 @@ describe('ssi-logger', function() {
                         durable: false,
                         autoDelete: true
                     }
-                }, options.amqpTransport));
+                }, options.transports.amqp));
                 consumer.connect((err) => {
                     consumer.purge(done);
                 });
@@ -1622,567 +1364,172 @@ describe('ssi-logger', function() {
             afterEach(function (done) {
                 consumer.end();
                 consumer = null;
+                log.close();
                 done();
             });
 
-            it('should queue 3 messages', function (done) {
-                const handler = amqpTransport(options.amqpTransport, (err, producer) => {
-                    expect(err).to.be(null);
-                    producer.end();
+            it('should queue messages', function (done) {
+                log.configureTransports(options.transports);
+                expect(log.activeTransports.amqp).not.to.be(null);
+                // Disable drain to force queuing.
+                log.activeTransports.amqp.amqp.isFlowing = false;
 
-                    let log_count = 0;
-                    process.on('log', function testf(log_event) {
-                        handler(log_event);
-                        if (++log_count === 3) {
-                            process.removeListener('log', testf);
-                            expect(producer.queue.length).to.be(3);
-                            done();
-                        }
-                    });
+                log.info("heaven");
+                log.info("world");
+                log.info("hell");
 
-                    // Disable drain.
-                    producer.isFlowing = false;
-
-                    log.info("heaven");
-                    log.info("world");
-                    log.info("hell");
-                });
+                expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
+                done();
             });
-            it('should publish single log message to AMQP', function (done) {
-                let pub;
+            it('should publish log messages to AMQP', function (done) {
+                consumer.consume(function (err, msg, next) {
+                    // Ack message regardless of possible error.
+                    next(null);
 
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
                     expect(err).to.be(null);
-                    pub = publisher;
-                    log.alert("Circuit Test", {"hello": "world"}, ["foo", "bar"]);
-                });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
+                    if (process.env.LOG_LEVEL === 'DEBUG') {
+                        console.log(msg);
+                    }
 
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
+                    // What goes around...
+                    expect(msg.properties.contentType).to.be('text/plain');
+                    expect(msg.properties.contentEncoding).to.be('utf8');
+                    expect(msg.properties.headers.Level).to.be('NOTICE');
+                    expect(msg.properties.headers.Facility).to.be('LOCAL0');
 
-                        expect(err).to.be(null);
+                    const hdr = msg.properties.headers;
+                    expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
 
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(msg);
-                        }
-
-                        // What goes around...
-                        expect(msg.fields.routingKey).to.be('log.node.LOCAL0.ALERT');
-                        expect(msg.properties.contentType).to.be('text/plain');
-                        expect(msg.properties.contentEncoding).to.be('utf8');
-                        expect(msg.properties.headers.Level).to.be('ALERT');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test hello=world 0=foo 1=bar`);
-                        pub.end();
+                    if (msg.fields.deliveryTag === 3) {
                         done();
-                    });
-                });
-            });
-            it('should publish 3 log messages to AMQP', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-                    log.notice("Circuit Test 1", {count: 1});
-                    log.notice("Circuit Test 2", {count: 2});
-                    log.notice("Circuit Test 3", {count: 3});
+                    }
                 });
 
-                process.on('log', function testf(log_event) {
-                    handler(log_event);
+                log.configureTransports(options.transports);
 
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
-
-                        expect(err).to.be(null);
-
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(msg);
-                        }
-
-                        // What goes around...
-                        expect(msg.properties.contentType).to.be('text/plain');
-                        expect(msg.properties.contentEncoding).to.be('utf8');
-                        expect(msg.properties.headers.Level).to.be('NOTICE');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
-
-                        if (msg.fields.deliveryTag === 3) {
-                            process.removeListener('log', testf);
-                            pub.end();
-                            done();
-                        }
-                    });
-                });
+                log.notice("Circuit Test 1", {count: 1});
+                log.notice("Circuit Test 2", {count: 2});
+                log.notice("Circuit Test 3", {count: 3});
             });
             it('should queue messages after a blocked event until an unblocked event', function (done) {
-                const handler = amqpTransport(options.amqpTransport, (err, producer) => {
-                    expect(err).to.be(null);
-
-                    process.on('log', function testf(log_event) {
-                        handler(log_event);
-
-                        consumer.consume(function (err, msg, next) {
-                            next(null);
-                            if (msg.fields.deliveryTag === 3) {
-                                process.removeListener('log', testf);
-                                producer.end();
-                                done();
-                            }
-                        });
-                    });
-
-                    producer.conn.emit('blocked');
-                    expect(producer.queue.length).to.be(0);
-
-                    log.info("message 1");
-                    log.info("message 2");
-                    log.info("message 3");
-
-                    expect(producer.queue.length).to.be(3);
-                    producer.conn.emit('unblocked');
-                });
-            });
-            it('should simulate blocked event, queue log messages until unblocked event', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-
-                    pub.conn.on('blocked', function testBlocked() {
-                        pub.conn.removeListener('blocked', testBlocked);
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log('blocked');
-                        }
-                        expect(pub.queue.length).to.be(0);
-
-                        // 3. Queue next 2 messages.
-                        log.notice("Circuit Test 2", {count: 2});
-                        log.notice("Circuit Test 3", {count: 3});
-                    });
-
-                    pub.conn.on('unblocked', function testUnblocked() {
-                        pub.conn.removeListener('unblocked', testUnblocked);
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log('unblocked');
-                        }
-                        expect(pub.queue.length).to.be(0);
-                   });
-
-                    // 1. First message is published.
-                    log.notice("Circuit Test 1", {count: 1});
-                });
-
-                let log_count = 0;
-                process.on('log', function testf(log_event) {
-                    handler(log_event);
-
-                    if (++log_count === 3) {
-                        // 4. Unblock and drain queue.
-                        expect(pub.queue.length).to.be(2);
-                        pub.conn.emit('unblocked');
-                    }
-
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
-
-                        expect(err).to.be(null);
-
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(msg);
-                        }
-
-                        // What goes around...
-                        expect(msg.properties.headers.Level).to.be('NOTICE');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
-
-                        switch (msg.fields.deliveryTag) {
-                        case 1:
-                            // 2. Block and queue next 2 messages.
-                            pub.conn.emit('blocked');
-                            break;
-                        case 3:
-                            // 5. Success
-                            process.removeListener('log', testf);
-                            pub.end();
-                            done();
-                        }
-                    });
-                });
-            });
-            it('should simulate full write buffer, queue log messages, then manual drain', function (done) {
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-
-                    // 1. Simulate full write buffer, force queuing.
-                    pub.isFlowing = false;
-
-                    // 2. Queue some messages.
-                    log.notice("Circuit Test 1", {count: 1});
-                    log.notice("Circuit Test 2", {count: 2});
-                    log.notice("Circuit Test 3", {count: 3});
-                });
-
-                let log_count = 0;
-                process.on('log', function testf(log_event) {
-                    handler(log_event);
-
-                    if (++log_count === 3) {
-                        // 3. Drain the message queue.
-                        expect(pub.queue.length).to.be(3);
-                        pub.drainQueue();
-                    }
-
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
-
-                        expect(err).to.be(null);
-
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(msg);
-                        }
-
-                        // What goes around...
-                        expect(msg.properties.headers.Level).to.be('NOTICE');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit Test ${msg.fields.deliveryTag} count=${msg.fields.deliveryTag}`);
-
-                        switch (msg.fields.deliveryTag) {
-                        case 3:
-                            // 4. Success
-                            process.removeListener('log', testf);
-                            pub.end();
-                            done();
-                        }
-                    });
-                });
-            });
-            it('should publish single log message with circular data object', function (done) {
-                const obj = {
-                    hello: "world",
-                    child: {
-                        world: "peace",
-                        child: {
-                            bang: "war",
-                            child: null
-                        }
-                    }
-                };
-                // Create a circular reference.
-                obj.child.child.child = obj.child;
-
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-                    log.info("Circuit test with circular data object", obj);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
-
-                        expect(err).to.be(null);
-
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(msg);
-                        }
-
-                        // What goes around...
-                        expect(msg.properties.headers.Level).to.be('INFO');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with circular data object hello=world child.world=peace child.child.bang=war child.child.child=[circular]`);
-
-                        pub.end();
+                consumer.consume(function (err, msg, next) {
+                    next(null);
+                    if (msg.fields.deliveryTag === 3) {
+                        expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
                         done();
-                    });
-                });
-            });
-            it('should publish single log message with redacted data', function (done) {
-                const obj = {
-                    hello: "world",
-                    child: {
-                        world: "peace",
-                        child: {
-                            bang: "war",
-                            child: null
-                        }
                     }
-                };
-
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-                    log.censor(['bang', /ello/]);
-                    log.info("Circuit test with redacted data object", obj);
                 });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
+                log.configureTransports(options.transports);
+                expect(log.activeTransports.amqp).not.to.be(null);
+                log.activeTransports.amqp.amqp.conn.emit('blocked');
+                expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
 
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
+                log.info("message 1");
+                log.info("message 2");
+                log.info("message 3");
 
-                        expect(err).to.be(null);
-
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(msg);
-                        }
-
-                        // What goes around...
-                        expect(msg.properties.headers.Level).to.be('INFO');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Circuit test with redacted data object hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null`);
-
-                        log.censor([]);
-                        pub.end();
-                        done();
-                    });
-                });
+                expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
+                log.activeTransports.amqp.amqp.conn.emit('unblocked');
             });
-            it('should publish single log message with assorted data types and values format=text', function (done) {
-                const basics = {
-                    "bool": true,
-                    "int": 123456,
-                    "decimal": 1234.56,
-                    "string": "(wave)",
-                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
-                };
-
-                const error = new Error('You goofed!');
-                error.extra = "cream pie";
-                error.inner = new SyntaxError("I am blind.");
-                error.inner.inner = new Error("Where's the kaboom?");
-                error.inner.inner.inner = null;
-
-                const specials = {
-                    "null": null,
-                    "undefined": undefined,
-                    "Error": error,
-                    "Function": function noop() { },
-                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                    "RegExp": /^[Hh]ello .orld$/i,
-                    "Infinity": Infinity,
-                    "NegInfinity": -Infinity,
-                    "NaN": NaN,
-                }
-
-                let pub;
-
-                const handler = amqpTransport(options.amqpTransport, (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-                    log.info("Assorted data types", basics, specials);
-                });
-
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
-
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
-
-                        expect(err).to.be(null);
-
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(JSON.stringify(msg, null, 2));
-                        }
-
-                        // What goes around...
-                        expect(msg.properties.headers.Level).to.be('INFO');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-
-                        const hdr = msg.properties.headers;
-                        expect(msg.content).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Assorted data types bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]`);
-
-                        pub.end();
+            it('should simulate full write buffer, queue log messages, then drain', function (done) {
+                consumer.consume(function (err, msg, next) {
+                    next(null);
+                    if (msg.fields.deliveryTag === 4) {
+                        expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
                         done();
-                    });
-                });
-            });
-            it('should publish single log message with assorted data types and values format=json', function (done) {
-                const basics = {
-                    "bool": true,
-                    "int": 123456,
-                    "decimal": 1234.56,
-                    "string": "(wave)",
-                    "array": [ false, 321, 543.21, "beep", [3,2,1], { "foo": "fighters" } ],
-                };
-
-                const error = new Error('You goofed!');
-                error.extra = "cream pie";
-                error.inner = new SyntaxError("I am blind.");
-                error.inner.inner = new Error("Where's the kaboom?");
-                error.inner.inner.inner = null;
-
-                const specials = {
-                    "null": null,
-                    "undefined": undefined,
-                    "Error": error,
-                    "Function": function noop() { },
-                    "Date": new Date('Thu, 10 Aug 2017 13:56:19 -0400'),
-                    "RegExp": /^[Hh]ello .orld$/i,
-                    "Infinity": Infinity,
-                    "NegInfinity": -Infinity,
-                    "NaN": NaN,
-                }
-
-                let pub;
-
-                const handler = amqpTransport(_.defaultsDeep({format: "json"}, options.amqpTransport), (err, publisher) => {
-                    expect(err).to.be(null);
-                    pub = publisher;
-                    log.info("Assorted data types", basics, specials);
+                    }
                 });
 
-                process.on('log', function testf(log_event) {
-                    process.removeListener('log', testf);
-                    handler(log_event);
+                log.configureTransports(options.transports);
+                expect(log.activeTransports.amqp).not.to.be(null);
 
-                    consumer.consume(function (err, msg, next) {
-                        // Ack message regardless of possible error.
-                        next(null);
+                // Disable drain to force queuing.
+                log.activeTransports.amqp.amqp.isFlowing = false;
 
-                        expect(err).to.be(null);
+                log.info("heaven");
+                log.info("world");
+                log.info("hell");
 
-                        if (process.env.LOG_LEVEL === 'DEBUG') {
-                            console.log(JSON.stringify(msg, null, 2));
-                        }
+                expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
 
-                        // What goes around...
-                        expect(msg.properties.headers.Level).to.be('INFO');
-                        expect(msg.properties.headers.Facility).to.be('LOCAL0');
-                        expect(msg.content.log_message).to.be('Assorted data types');
-                        expect(msg.content.log_details[0].array[3]).to.be('beep');
+                // Enable drain.
+                log.activeTransports.amqp.amqp.isFlowing = true;
 
-                        pub.end();
-                        done();
-                    });
-                });
+                log.info("next message triggers drain");
+
+                done();
             });
             it('should continue sending messages after an error and reconnect', function (done) {
-                const handler = amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-
-                    process.on('log', function testf(log_event) {
-                        handler(log_event);
-
-                        consumer.consume(function (err, msg, next) {
-                            next(null);
-                            if (msg.fields.deliveryTag === 3) {
-                                process.removeListener('log', testf);
-                                expect(producer.conn).not.to.be(null);
-                                expect(producer.conn).not.to.be(conn_before);
-                                producer.end();
-                                done();
-                            }
-                        });
-                    });
-
-                    log.info("message 1");
-
-                    producer.bail(new Error('error triggered by test'));
-
-                    log.info("message 2");
-                    log.info("message 3");
+                consumer.consume(function (err, msg, next) {
+                    next(null);
+                    if (msg.fields.deliveryTag === 3) {
+                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(null);
+                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(conn_before);
+                        done();
+                    }
                 });
+
+                log.configureTransports(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
+                expect(log.activeTransports.amqp).not.to.be(null);
+                const conn_before = log.activeTransports.amqp.amqp.conn;
+
+                log.info("message 1");
+
+                // Similate error, should disconnect, then reconnect.
+                log.activeTransports.amqp.amqp.bail(new Error('error triggered by test'));
+
+                log.info("message 2");
+                log.info("message 3");
             });
             it('should continue sending messages after a closed error and reconnect', function (done) {
-                const handler = amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-
-                    process.on('log', function testf(log_event) {
-                        handler(log_event);
-
-                        consumer.consume(function (err, msg, next) {
-                            next(null);
-                            if (msg.fields.deliveryTag === 3) {
-                                process.removeListener('log', testf);
-                                expect(producer.conn).not.to.be(null);
-                                expect(producer.conn).not.to.be(conn_before);
-                                producer.end();
-                                done();
-                            }
-                        });
-                    });
-
-                    log.info("message 1");
-
-                    producer.closed(new Error('error triggered by test'));
-
-                    log.info("message 2");
-                    log.info("message 3");
+                consumer.consume(function (err, msg, next) {
+                    next(null);
+                    if (msg.fields.deliveryTag === 3) {
+                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(null);
+                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(conn_before);
+                        done();
+                    }
                 });
+
+                log.configureTransports(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
+                expect(log.activeTransports.amqp).not.to.be(null);
+                const conn_before = log.activeTransports.amqp.amqp.conn;
+
+                log.info("message 1");
+
+                // Similate error, should disconnect, then reconnect.
+                log.activeTransports.amqp.amqp.closed(new Error('error triggered by test'));
+
+                log.info("message 2");
+                log.info("message 3");
             });
             it('should reconnect if necessary when flushing queue', function (done) {
-                const handler = amqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.amqpTransport), (err, producer) => {
-                    expect(err).to.be(null);
-                    const conn_before = producer.conn;
-
-                    process.on('log', function testf(log_event) {
-                        handler(log_event);
-
-                        consumer.consume(function (err, msg, next) {
-                            next(null);
-
-                            // Nuking producer.chan.publish throws an error, loosing a message.
-                            if (msg.fields.deliveryTag === 2) {
-                                process.removeListener('log', testf);
-                                expect(producer.conn).to.be(null);
-                                done();
-                            }
-                        });
-                    });
-
-                    // Queue some messages.
-                    producer.conn.emit('blocked');
-                    log.info("message 1");
-                    log.info("message 2");
-                    log.info("message 3");
-
-                    // Simulate reconnect during flush, looses first message.
-                    producer.chan.publish = null;
-
-                    // Flush and close.
-                    producer.end();
+                consumer.consume(function (err, msg, next) {
+                    next(null);
+                    // Nuking .chan.publish throws an error, loosing a message.
+                    if (msg.fields.deliveryTag === 2) {
+                        expect(log.activeTransports.amqp.amqp.conn).to.be(null);
+                        done();
+                    }
                 });
+
+                log.configureTransports(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
+                expect(log.activeTransports.amqp).not.to.be(null);
+
+                // Queue some messages.
+                log.activeTransports.amqp.amqp.conn.emit('blocked');
+
+                log.info("message 1");
+                log.info("message 2");
+                log.info("message 3");
+
+                // Simulate reconnect during flush, looses first message.
+                log.activeTransports.amqp.amqp.chan.publish = null;
+
+                // Flush and close.
+                log.activeTransports.amqp.amqp.end();
             });
         });
     });
