@@ -5,21 +5,27 @@ const fs = require('fs');
 const log = require('../');
 const path = require('path');
 
-process.on('log', log.consoleTransport({color: true, timestamp: true}));
+var options = {
+    "transports": {
+        "amqp": {
+            "enable": true,
+            "level": "DEBUG",
+        },
+        "console": {
+            "enable": true,
+            "timestamp": true,
+            "stderr": true
+        },
+    }
+};
 
-var options = {};
 try {
     options = _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
 } catch (err) {
     console.error(err);
 }
 
-process.on('log', log.amqpTransport(options.amqpTransport, (err, amqplog) => {
-    if (err) {
-        process.exit(1);
-    }
-    console.log('connected');
-}));
+log.open(options.transports);
 
 const obj = {
     hello: "world",
