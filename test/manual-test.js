@@ -5,14 +5,15 @@
 
 "use strict";
 
-var log = require('../');
+const _ = require('lodash');
+const fs = require('fs');
+const log = require('../');
+const path = require('path');
 
 var options = {
     "transports": {
         "amqp": {
             "enable": true,
-//            "url": 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
-            "url": "amqp://ssi_dev:ssi_dev@omicron.ssimicro.com/achowe",
             "level": "DEBUG",
         },
         "console": {
@@ -27,6 +28,12 @@ var options = {
         }
     }
 };
+
+try {
+    _.defaultsDeep(options, JSON.parse(fs.readFileSync(path.join(__dirname, 'ssi-logger.conf')).toString()));
+} catch (err) {
+    console.error(err);
+}
 
 log.configureTransports(options.transports);
 
