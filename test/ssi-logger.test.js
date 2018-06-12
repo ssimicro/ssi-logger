@@ -734,6 +734,7 @@ describe('ssi-logger', function() {
             transports: {
                 amqp: {
                     format: 'text',
+                    level: process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'INFO',
                 }
             }
         };
@@ -1383,6 +1384,25 @@ describe('ssi-logger', function() {
                 expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
                 done();
             });
+            it('should flush queued messages on close()', function (done) {
+                consumer.consume(function (err, msg, next) {
+                    next(null);
+                    if (msg.fields.deliveryTag === 3) {
+                        done();
+                    }
+                });
+
+                log.open(options.transports);
+                expect(log.activeTransports.amqp).not.to.be(null);
+                // Disable drain to force queuing.
+                log.activeTransports.amqp.amqp.isFlowing = false;
+                expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+
+                log.info("message 1");
+                log.info("message 2");
+                log.info("message 3");
+                log.close();
+            });
             it('should publish log messages to AMQP', function (done) {
                 consumer.consume(function (err, msg, next) {
                     // Ack message regardless of possible error.
@@ -1506,32 +1526,6 @@ describe('ssi-logger', function() {
 
                 log.info("message 2");
                 log.info("message 3");
-            });
-            it('should reconnect if necessary when flushing queue', function (done) {
-                consumer.consume(function (err, msg, next) {
-                    next(null);
-                    // Nuking .chan.publish throws an error, loosing a message.
-                    if (msg.fields.deliveryTag === 2) {
-                        expect(log.activeTransports.amqp.amqp.conn).to.be(null);
-                        done();
-                    }
-                });
-
-                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
-                expect(log.activeTransports.amqp).not.to.be(null);
-
-                // Queue some messages.
-                log.activeTransports.amqp.amqp.conn.emit('blocked');
-
-                log.info("message 1");
-                log.info("message 2");
-                log.info("message 3");
-
-                // Simulate reconnect during flush, looses first message.
-                log.activeTransports.amqp.amqp.chan.publish = null;
-
-                // Flush and close.
-                log.activeTransports.amqp.amqp.end();
             });
         });
     });
