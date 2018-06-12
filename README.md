@@ -45,7 +45,7 @@ Basic Usage:
         }
     };
     
-    log.configureTransports(options.logger);
+    log.open(options.logger);
     
     log.info('Ready to rock!');
 
@@ -81,7 +81,7 @@ With censorship:
         }
     };
 
-    log.configureTransports(options.logger);
+    log.open(options.logger);
 
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
     // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted]' }
@@ -114,7 +114,7 @@ Logging to a file with daily log rotation:
         }
     };
 
-    log.configureTransports(options.logger);
+    log.open(options.logger);
 
     log('INFO', 'This message gets logged to a file');
 
@@ -177,7 +177,7 @@ Here's a setup example for a project using multiple transports to log messages. 
         }
     });
     
-    log.configureTransports(options.logger);
+    log.open(options.logger);
     
     log.info('Ready to rock!');
 
@@ -242,7 +242,7 @@ Sets the list of fields to censor from all log messages.  Any number of fields m
 
 Close the transports like `syslog` and `amqp`.
 
-### log.configureTransports(transportOptions[, userTransports])
+### log.open(transportOptions[, userTransports])
 
 **Parameters**
 
@@ -255,7 +255,7 @@ Close the transports like `syslog` and `amqp`.
 
 * `userTransports`: an object with one or more user transport functions.  For example:
 ```
-    log.configureTransports({
+    log.open({
         console: {enable: process.env.NODE_ENV !== 'production'},
         syslog: {enable: process.env.NODE_ENV === 'production'},
         tripwire: {enable: process.env.NODE_ENV !== 'production'},
@@ -319,7 +319,7 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
 
 Example:
 
-    log.configureTransports({
+    log.open({
         amqp: {
             url: 'amqp://guest:somepassword@example.com/virtual_host',
             exchangeName: 'logger'
@@ -347,7 +347,7 @@ or when `options.timestamp` is true:
 
 Colors can also be disabled at runtime with the `--no-color` command line option.
 
-    log.configureTransports({
+    log.open({
         console: {colour: true, timestamp: true, stderr: true}
     });
 
@@ -372,7 +372,7 @@ or when `options.timestamp` is true:
 
 Colors can also be disabled at runtime with the `--no-color` command line option.
 
-    log.configureTransports({
+    log.open({
         stream: {enable: true, stream: logfile}
     });
 
@@ -390,12 +390,12 @@ Colors can also be disabled at runtime with the `--no-color` command line option
 Examples:
 
     // default minimum log level to INFO
-    log.configureTransports({
+    log.open({
         syslog: {facility: 'LOG_LOCAL1'}
     });
 
     // set minimum log level to ERROR
-    log.configureTransports({
+    log.open({
         syslog: {facility: 'LOG_LOCAL2', level: 'ERROR'}
     });
 

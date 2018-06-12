@@ -225,8 +225,8 @@ describe('ssi-logger', function() {
             var level1 = level0.defaults('foobar');
             var level2 = level1.defaults({ cheese: 'cake' });
 
-            expect(level2).to.have.property('configureTransports');
-            expect(level2.configureTransports).to.be.a('function');
+            expect(level2).to.have.property('open');
+            expect(level2.open).to.be.a('function');
 
             process.on('log', function testfx(obj) {
                 process.removeListener('log', testfx);
@@ -244,8 +244,8 @@ describe('ssi-logger', function() {
             var level1 = level0.defaults('foobar');
             var level2 = level1.defaults({ cheese: 'cake' });
 
-            expect(level2).to.have.property('configureTransports');
-            expect(level2.configureTransports).to.be.a('function');
+            expect(level2).to.have.property('open');
+            expect(level2.open).to.be.a('function');
 
             process.on('log', function testfx(obj) {
                 process.removeListener('log', testfx);
@@ -659,7 +659,7 @@ describe('ssi-logger', function() {
         });
     });
 
-    describe('log.configureTransports', () => {
+    describe('log.open', () => {
         let options = {
             transports: {
                 console: {enable: true},
@@ -672,12 +672,16 @@ describe('ssi-logger', function() {
             done();
         });
 
+        afterEach((done) => {
+            log.close();
+            done();
+        });
+
         it('should log to console without user transports', (done) => {
-            log.configureTransports(options.transports);
+            log.open(options.transports);
             const loggers = process.listeners("log");
             expect(loggers.length).to.be(1);
             log.info("hello world");
-            log.close();
             done();
         });
         it('should log to console and user transports', (done) => {
@@ -685,12 +689,11 @@ describe('ssi-logger', function() {
                 log(log_event) {
                     expect(log_event).not.to.be(null);
                     expect(log_event.message).to.be("hello world");
-                    log.close();
                     done();
                 }
             };
 
-            log.configureTransports(options.transports, {capture: Capture});
+            log.open(options.transports, {capture: Capture});
 
             const loggers = process.listeners("log");
             expect(loggers.length).to.be(1);
@@ -706,18 +709,17 @@ describe('ssi-logger', function() {
 
             class Capture2 extends Transport {
                 log(log_event) {
-                    log.close();
                     done();
                 }
             };
 
-            log.configureTransports(options.transports, {capture: Capture1});
+            log.open(options.transports, {capture: Capture1});
 
             let loggers = process.listeners("log");
             expect(loggers.length).to.be(1);
             log.info("hello world");
 
-            log.configureTransports(options.transports, {capture: Capture2});
+            log.open(options.transports, {capture: Capture2});
 
             loggers = process.listeners("log");
             expect(loggers.length).to.be(1);
@@ -826,7 +828,7 @@ describe('ssi-logger', function() {
             });
 
             it('should queue log message', function (done) {
-                log.configureTransports(options.transports);
+                log.open(options.transports);
                 // Disconnect and queue messages for examination.
                 log.activeTransports.amqp.end();
 
@@ -841,7 +843,7 @@ describe('ssi-logger', function() {
                 done();
             });
             it('should filter log messages below ERROR', function (done) {
-                log.configureTransports(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports));
+                log.open(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports));
                 // Disconnect and queue messages for examination.
                 log.activeTransports.amqp.end();
 
@@ -851,7 +853,7 @@ describe('ssi-logger', function() {
                 done();
             });
             it('should not filter log message ERROR or above', function (done) {
-                log.configureTransports(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports));
+                log.open(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports));
                 // Disconnect and queue messages for examination.
                 log.activeTransports.amqp.end();
 
@@ -879,7 +881,7 @@ describe('ssi-logger', function() {
 
         describe('payload preparation', function () {
             beforeEach((done) => {
-                log.configureTransports(options.transports);
+                log.open(options.transports);
                 log.censor([]);
                 done();
             });
@@ -1369,7 +1371,7 @@ describe('ssi-logger', function() {
             });
 
             it('should queue messages', function (done) {
-                log.configureTransports(options.transports);
+                log.open(options.transports);
                 expect(log.activeTransports.amqp).not.to.be(null);
                 // Disable drain to force queuing.
                 log.activeTransports.amqp.amqp.isFlowing = false;
@@ -1406,7 +1408,7 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.configureTransports(options.transports);
+                log.open(options.transports);
 
                 log.notice("Circuit Test 1", {count: 1});
                 log.notice("Circuit Test 2", {count: 2});
@@ -1421,7 +1423,7 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.configureTransports(options.transports);
+                log.open(options.transports);
                 expect(log.activeTransports.amqp).not.to.be(null);
                 log.activeTransports.amqp.amqp.conn.emit('blocked');
                 expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
@@ -1442,7 +1444,7 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.configureTransports(options.transports);
+                log.open(options.transports);
                 expect(log.activeTransports.amqp).not.to.be(null);
 
                 // Disable drain to force queuing.
@@ -1471,7 +1473,7 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.configureTransports(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
+                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
                 expect(log.activeTransports.amqp).not.to.be(null);
                 const conn_before = log.activeTransports.amqp.amqp.conn;
 
@@ -1493,7 +1495,7 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.configureTransports(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
+                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
                 expect(log.activeTransports.amqp).not.to.be(null);
                 const conn_before = log.activeTransports.amqp.amqp.conn;
 
@@ -1515,7 +1517,7 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.configureTransports(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
+                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
                 expect(log.activeTransports.amqp).not.to.be(null);
 
                 // Queue some messages.

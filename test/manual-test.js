@@ -35,7 +35,7 @@ try {
     console.error(err);
 }
 
-log.configureTransports(options.transports);
+log.open(options.transports);
 
 log.info('This should go to all the log transports.');
 

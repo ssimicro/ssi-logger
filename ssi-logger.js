@@ -104,22 +104,18 @@ function dispatcher(event) {
     Object.keys(activeTransports).forEach((transport) => activeTransports[transport].log(event));
 }
 
-function disableTransports() {
+function close() {
+    process.removeListener('log', dispatcher);
     Object.keys(activeTransports).forEach((transport) => {
         activeTransports[transport].end();
         delete activeTransports[transport];
     });
 }
 
-function enableTransports() {
-    configureTransports(activeConfig);
-}
-
 // Install a transport if options contains a property with a name
 // that matches a known transport and has `enable` set to `true`.
-function configureTransports(options, user_transports) {
-    process.removeListener('log', dispatcher);
-    disableTransports();
+function open(options, user_transports) {
+    close();
     activeConfig = options;
     _.merge(transports, user_transports);
     _.forEach(options, (args, transport) => {
@@ -150,14 +146,13 @@ function transformLogEvent(log_event) {
 // Public API
 module.exports = log;
 module.exports.censor = censor;
-module.exports.close = disableTransports;
+module.exports.close = close;
 module.exports.defaults = defaults;
+module.exports.open = open;
+module.exports.transformLogEvent = transformLogEvent;
+
 module.exports.level_names = level_names;
 module.exports.activeTransports = activeTransports;
-module.exports.configureTransports = configureTransports;
-module.exports.disableTransports = disableTransports;
-module.exports.enableTransports = enableTransports;
-module.exports.transformLogEvent = transformLogEvent;
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
