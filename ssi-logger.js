@@ -153,6 +153,7 @@ module.exports.transformLogEvent = transformLogEvent;
 
 module.exports.level_names = level_names;
 module.exports.activeTransports = activeTransports;
+module.exports.Transport = require('./lib/Transport');  // Expose for user transports.
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement

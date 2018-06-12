@@ -255,21 +255,25 @@ Close the transports like `syslog` and `amqp`.
 
 * `userTransports`: an object with one or more user transport functions.  For example:
 ```
+    const Transport = require('log').Transport;
+
+    class TripwireTransport extends Transport {
+        log(log_event) {
+            options.patterns.forEach((pattern) => {
+                if (pattern.test(log_event.message)){
+                    console.log("Run for the hills.");
+                    process.exit(1);
+                }
+            });
+        }
+    };
+
     log.open({
         console: {enable: process.env.NODE_ENV !== 'production'},
         syslog: {enable: process.env.NODE_ENV === 'production'},
         tripwire: {enable: process.env.NODE_ENV !== 'production'},
     }, {
-        tripwire: function tripwireTransport(options) {
-            return function tripwireClosure(log_event) {
-                options.patterns.forEach((pattern) => {
-                    if (pattern.test(log_event.message)){
-                        console.log("Run for the hills.");
-                        process.exit(1);
-                    }
-                }
-            };
-        }
+        tripwire: TripwireTransport,
     });
 ```
 
@@ -289,6 +293,18 @@ The `log_event` passed to log event transport handlers is an object with the fol
 ### Available Transports
 
 Here are the available transports.
+
+#### lib/Transport
+
+The base class for pre-defined and user transports.
+
+```
+class Transport {
+    constructor(options) {}
+    log(event) {}
+    end() {}
+}
+```
 
 #### lib/transports/amqp
 
