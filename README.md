@@ -416,7 +416,7 @@ Examples:
     });
 
     // set minimum log level to DEBUG
-    log.configureTransportTransports({
+    log.open({
         syslog: {facility: 'LOG_LOCAL3', level: 'DEBUG'}
     });
 
