@@ -725,6 +725,17 @@ describe('ssi-logger', function() {
             expect(loggers.length).to.be(1);
             log.info("bye bye");
         });
+        it('should log to console and syslog without user transports', (done) => {
+            log.open(_.defaultsDeep({syslog: {enable: true}}, options.transports));
+            const loggers = process.listeners("log");
+            expect(loggers.length).to.be(1);
+            log.info("hello world");
+            log.warn("danger Will Robinson!");
+            log.error("? this is not ed(1)");
+            log.crit("don't criticize me");
+            log.alert("stay alert");
+            done();
+        });
     });
 
     optDescribe('AmqpTransport', function () {

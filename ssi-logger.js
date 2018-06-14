@@ -97,7 +97,6 @@ function defaults() {
     return defaultLog;
 }
 
-var activeConfig = {};
 const activeTransports = {};
 
 function dispatcher(event) {
@@ -116,11 +115,10 @@ function close() {
 // that matches a known transport and has `enable` set to `true`.
 function open(options, user_transports) {
     close();
-    activeConfig = options;
-    _.merge(transports, user_transports);
+    const mergedTransports = _.merge({}, transports, user_transports);
     _.forEach(options, (args, transport) => {
-        if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(transports, transport)) {
-            activeTransports[transport] = new transports[transport](args);
+        if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(mergedTransports, transport)) {
+            activeTransports[transport] = new mergedTransports[transport](args);
         }
     });
     process.on('log', dispatcher);
