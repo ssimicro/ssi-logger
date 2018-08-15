@@ -30,6 +30,106 @@ describe('ssi-logger', function() {
     var ip_address = '8.8.8.8';
     var ip_expect = ip_message + ' ip_address=' + ip_address;
 
+    const conf_tmp = '/tmp/ssi-logger.test.conf';
+    const conf_files = [
+        'test/ssi-logger.conf.example',
+        'test/ssi-logger.conf',
+        conf_tmp,
+    ];
+
+    describe('configuration', () => {
+        before(() => {
+            try {
+                fs.unlinkSync(conf_tmp);
+            } catch (e) {
+                // ignore
+            }
+        });
+        afterEach(() => {
+            try {
+                fs.unlinkSync(conf_tmp);
+            } catch (e) {
+                // ignore
+            }
+            log.close();
+        });
+        it('should have sensible internal defaults', () => {
+            log.loadConf();
+            expect(log.options).to.have.key('censor');
+            expect(log.options.censor.length).to.be(0);
+            expect(log.options).to.have.key('transports');
+            expect(log.options.transports).to.have.keys(['amqp', 'console', 'syslog']);
+            expect(log.options.transports.amqp.enable).to.be(false);
+            expect(log.options.transports.syslog.enable).to.be(true);
+        });
+        it('should not complain about non-existant configuration files', () => {
+            expect(() => {
+                log.loadConf([
+                    'test/i_do_not_exist.conf',
+                    'test/figment_of_imagination.conf',
+                ]);
+            }).not.to.throwError();
+        });
+        it('should load configuration files overriding previous values', (done) => {
+            const opts = {
+                censor: [
+                    "password",
+                ],
+                transports: {
+                    amqp: {
+                        url: "amqp://127.127.127.127/",
+                    },
+                    syslog: {
+                        enable: false,
+                        hello: "world",
+                    }
+                }
+            };
+            fs.appendFile(conf_tmp, JSON.stringify(opts), (err) => {
+                expect(err).to.be(null);
+                expect(() => {
+                    log.loadConf(conf_files);
+                }).not.to.throwError();
+                expect(log.options.censor.length).to.be(1);
+                expect(log.options.censor[0]).to.be("password");
+                expect(log.options.transports.amqp.url).to.be(opts.transports.amqp.url);
+                expect(log.options.transports.syslog.enable).to.be(false);
+                expect(log.options.transports.syslog).to.have.key("hello");
+                expect(log.options.transports.syslog.hello).to.be("world");
+                done();
+            });
+        });
+        it('should override transport options passed to log.open()', (done) => {
+            const options = {
+                censor: [
+                    "blackhole"
+                ],
+                transports: {
+                    amqp: { enable: true, },
+                    console: { enable: false, },
+                    capture: { enable: false, },
+                }
+            };
+
+            class Capture extends Transport {
+                log(log_event) {
+                    expect(log_event).not.to.be(null);
+                    expect(log_event.message).to.contain("blackhole=[redacted]");
+                    done();
+                }
+            };
+
+            expect(() => {
+                log.loadConf(conf_files);
+            }).not.to.throwError();
+
+            // Replace amqp with a custom transport.
+            log.open(options.transports, {amqp: Capture});
+            log.censor(_.union(options.censor, log.censor()));
+            log.info("blackhole=9876543210");
+        });
+    });
+
     describe('logging', function () {
 
         it('should emit log events', function (done) {
@@ -744,6 +844,7 @@ describe('ssi-logger', function() {
         let options = {
             transports: {
                 amqp: {
+                    enable: true,
                     format: 'text',
                     level: process.env.LOG_LEVEL ? process.env.LOG_LEVEL : 'INFO',
                 }

@@ -1,0 +1,25 @@
+{
+    "censor": [
+        "number",
+        "cardnumber",
+        "customer_code",
+        "cvd",
+        "headers.authorization",
+        "merchant_id",
+        "profile_authcode",
+        "transaction_authcode",
+        "password",
+        "password2",
+        "passwordAgain",
+        "secret"
+    ],
+    "transports": {
+        "console": {
+            "timestamp": true,
+            "stderr": true
+        },
+        "syslog": {
+            "facility": "LOCAL5"
+        }
+    }
+}

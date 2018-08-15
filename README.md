@@ -40,12 +40,14 @@ Basic Usage:
 
     var options = {
         logger: {
-            syslog: {facility: "LOG_LOCAL5", level: "DEBUG"},
-            console: {timestamp: true},
+            transports: {
+                syslog: {facility: "LOG_LOCAL5", level: "DEBUG"},
+                console: {timestamp: true},
+            }
         }
     };
     
-    log.open(options.logger);
+    log.open(options.logger.transports);
     
     log.info('Ready to rock!');
 
@@ -69,19 +71,21 @@ With censorship:
 
     var log = require('ssi-logger');
 
-    log.censor([
-        'card_number', // can contain property names
-        /pass(word)?/  // and/or regular expressions
-    ]);
-
     var options = {
         logger: {
-            syslog: {facility: "LOG_LOCAL5", level: "INFO"},
-            console: {},
+            censor: [
+                'card_number',      // can contain property names
+                /pass(word)?/       // and/or regular expressions
+            ],
+            transports: {
+                syslog: {facility: "LOG_LOCAL5", level: "INFO"},
+                console: {},
+            }
         }
     };
 
-    log.open(options.logger);
+    log.open(options.logger.transports);
+    log.censor(options.logger.censor);
 
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
     // emits ---> { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted]' }
@@ -110,11 +114,13 @@ Logging to a file with daily log rotation:
 
     var options = {
         logger: {
-            stream: { stream: logfile },
+            transports: {
+                stream: { stream: logfile },
+            }
         }
     };
 
-    log.open(options.logger);
+    log.open(options.logger.transports);
 
     log('INFO', 'This message gets logged to a file');
 
@@ -150,6 +156,23 @@ Standard Log Levels (highest to lowest):
 
     EMERG, ALERT, CRIT, ERROR, WARN, NOTICE, INFO, DEBUG
 
+## Configuration
+
+SSi Logger will look system wide configuration files in several places, reading each and overriding previous value.  The configuration files need not exist as the application can override them (see `log.censor()` and `log.open()` below).  The load order is:
+
+* internal defaults
+* `./ssi-logger.conf.defaults` (install directory)
+* `/etc/ssi-logger.conf`
+* `/etc/ssi-logger.conf.local`
+* `/usr/local/etc/ssi-logger.conf`
+* `/usr/local/etc/ssi-logger.conf.local`
+
+The general structure of a configuration file is an JSON object containing:
+
+* `censor`: an array of key field names to censor.
+* `transports`: a collection of `ssi-logger` transports to give `log.open()`.
+
+
 ## Transports
 
 Log messages are emitted as `log` events. Event listeners should be installed to receive the events and send them over
@@ -160,9 +183,11 @@ Here's a setup example for a project using multiple transports to log messages. 
     // Logging defaults.
     var options = {
         logger: {
-            amqp: {url: "amqp://user:password@example.com/virt_host", facility: "LOG_USER", level: "ERROR"},
-            syslog: {facility: "LOG_LOCAL5", level: "INFO"},
-            console: {timestamp: true},
+            transports: {
+                amqp: {url: "amqp://user:password@example.com/virt_host", facility: "LOG_USER", level: "ERROR"},
+                syslog: {facility: "LOG_LOCAL5", level: "INFO"},
+                console: {timestamp: true},
+            }
         }
     };
     
@@ -171,13 +196,15 @@ Here's a setup example for a project using multiple transports to log messages. 
     // Enable different transports depending on NODE_ENV.
     _.defaultsDeep(options, {
         logger: {
-            amqp: {enable: process.env.NODE_ENV === 'production'},
-            console: {enable: process.env.NODE_ENV !== 'production'},
-            syslog: {enable: process.env.NODE_ENV !== 'production'},
+            transports: {
+                amqp: {enable: process.env.NODE_ENV === 'production'},
+                console: {enable: process.env.NODE_ENV !== 'production'},
+                syslog: {enable: process.env.NODE_ENV !== 'production'},
+            }
         }
     });
     
-    log.open(options.logger);
+    log.open(options.logger.transports);
     
     log.info('Ready to rock!');
 
