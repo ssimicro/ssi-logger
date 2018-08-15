@@ -124,8 +124,6 @@ function censor(list) {
     return module.exports.censorList;
 }
 
-censor(conf_default.censor);
-
 function defaults() {
     var defaultMessages = Array.prototype.slice.call(arguments);
     var defaultLog = function (level, message) {
@@ -207,6 +205,7 @@ function addConvenienceFunctions(logger) {
 }
 
 addConvenienceFunctions(module.exports);
+censor(conf_default.censor);
 
 const transports = {
    amqp: require('./lib/transports/amqp'),
