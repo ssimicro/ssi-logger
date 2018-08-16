@@ -11,6 +11,7 @@
         "password",
         "password2",
         "passwordAgain",
+        "privateKey",
         "secret"
     ],
     "transports": {
