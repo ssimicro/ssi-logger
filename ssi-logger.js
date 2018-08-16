@@ -33,34 +33,32 @@ const conf_files = [
     '/usr/local/etc/ssi-logger.conf.local',
 ];
 
-const conf_default = {};
-
 function loadConf(files) {
-    conf_default.censor = [];
-    conf_default.transports = {
-        amqp: {
-            url: 'amqp://guest:guest@localhost/',
-            enable: process.env.NODE_ENV === 'production'
-        },
-        console: {
-            enable: process.env.NODE_ENV !== 'production'
-        },
-        syslog: {
-            enable: process.env.NODE_ENV !== 'production'
+    module.exports.options = {
+        censor: [],
+        transports: {
+            amqp: {
+                url: 'amqp://guest:guest@localhost/',
+                enable: process.env.NODE_ENV === 'production'
+            },
+            console: {
+                enable: process.env.NODE_ENV !== 'production'
+            },
+            syslog: {
+                enable: process.env.NODE_ENV !== 'production'
+            },
         },
     };
     _.forEach(files, (filepath) => {
         filepath = path.resolve(__dirname, filepath.split("/").join(path.sep));
         try {
             let conf = JSON.parse(fs.readFileSync(filepath).toString());
-            _.merge(conf_default, conf);
+            _.merge(module.exports.options, conf);
         } catch (e) {
             // Ignore.
         }
     });
 }
-
-loadConf(conf_files);
 
 function log(level, message) {
     // Censor objects.
@@ -155,7 +153,7 @@ function close() {
 // that matches a known transport and has `enable` set to `true`.
 function open(options, user_transports) {
     close();
-    options = _.defaultsDeep(options, conf_default.transports);
+    options = _.defaultsDeep(options, module.exports.options.transports);
     const mergedTransports = _.merge({}, transports, user_transports);
     _.forEach(options, (args, transport) => {
         if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(mergedTransports, transport)) {
@@ -191,7 +189,6 @@ module.exports.loadConf = loadConf;                     // For testing.
 module.exports.open = open;
 module.exports.transformLogEvent = transformLogEvent;
 
-module.exports.options = conf_default;                  // For testing.
 module.exports.level_names = level_names;
 module.exports.activeTransports = activeTransports;
 module.exports.Transport = require('./lib/Transport');  // Expose for user transports.
@@ -204,8 +201,9 @@ function addConvenienceFunctions(logger) {
     });
 }
 
+loadConf(conf_files);
+censor(module.exports.options.censor);
 addConvenienceFunctions(module.exports);
-censor(conf_default.censor);
 
 const transports = {
    amqp: require('./lib/transports/amqp'),
