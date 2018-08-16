@@ -38,7 +38,7 @@ which can be displayed/returned to the user if desired.
 
 Basic Usage:
 
-    var options = {
+    const options = {
         logger: {
             transports: {
                 syslog: {facility: "LOG_LOCAL5", level: "DEBUG"},
@@ -69,9 +69,9 @@ Non-string message arguments:
 
 With censorship:
 
-    var log = require('ssi-logger');
+    const log = require('ssi-logger');
 
-    var options = {
+    const options = {
         logger: {
             censor: [
                 'card_number',      // can contain property names
@@ -94,25 +94,25 @@ With censorship:
 Return value:
 
     if (err) {
-        var human_readble_error_string = log('ERROR', err);
+        const human_readble_error_string = log('ERROR', err);
         displayError(human_readble_error_string);
         callback(err);
     }
 
 Logging to a file with daily log rotation:
 
-    var FileStreamRotator = require('file-stream-rotator');
-    var log = require('ssi-logger');
-    var path = require('path');
+    const FileStreamRotator = require('file-stream-rotator');
+    const log = require('ssi-logger');
+    const path = require('path');
 
-    var logfile = FileStreamRotator.getStream({
+    const logfile = FileStreamRotator.getStream({
         filename: path.join(__dirname, 'application-%DATE%.log'),
         frequency: 'daily',
         verbose: false,
         date_format: 'YYYY-MM-DD'
     });
 
-    var options = {
+    const options = {
         logger: {
             transports: {
                 stream: { stream: logfile },
@@ -126,7 +126,7 @@ Logging to a file with daily log rotation:
 
 Setting defaults that are included in every log message:
 
-    var app = express();
+    const app = express();
 
     app.use(function loggingConfig(req, res, next) {
         req.log = log.defaults({
@@ -181,7 +181,7 @@ the appropriate transport. SSi Logger provides a couple of common transports.
 Here's a setup example for a project using multiple transports to log messages.  Depending on the value of `level` or `logLevel`, log messages may or may not go to syslog or AMQP.  Here `INFO` means that log messages with levels up to and including `INFO` are logged, i.e. `DEBUG` messages are not logged; likewise up to and including `ERROR`, would exclude `INFO` and `DEBUG`.
 
     // Logging defaults.
-    var options = {
+    const options = {
         logger: {
             transports: {
                 amqp: {url: "amqp://user:password@example.com/virt_host", facility: "LOG_USER", level: "ERROR"},
@@ -453,7 +453,7 @@ Returns a new curried `log()` function with baked in parameters that are include
 
 Example:
 
-    var mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+    const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
 
     mylog('INFO', 'I love golf!');
 
