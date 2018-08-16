@@ -52,7 +52,7 @@ function loadConf(files) {
     _.forEach(files, (filepath) => {
         filepath = path.resolve(__dirname, filepath.split("/").join(path.sep));
         try {
-            let conf = JSON.parse(fs.readFileSync(filepath).toString());
+            const conf = JSON.parse(fs.readFileSync(filepath).toString());
             _.merge(module.exports.options, conf);
         } catch (e) {
             // Ignore.
