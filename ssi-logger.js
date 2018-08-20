@@ -55,7 +55,13 @@ function loadConf(files) {
             const conf = JSON.parse(fs.readFileSync(filepath).toString());
             _.merge(module.exports.options, conf);
         } catch (e) {
-            // Ignore.
+            // Ignore file not found error, but report others
+            // like configuration file syntax errors.
+            if (e.code === 'ENOENT') {
+                return;
+            }
+            console.error({file: filepath, err: e});
+            console.error(e.stack);
         }
     });
 }
