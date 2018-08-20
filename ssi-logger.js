@@ -62,6 +62,7 @@ function loadConf(files) {
             }
             console.error({file: filepath, err: e});
             console.error(e.stack);
+            process.exit(1);
         }
     });
 }
