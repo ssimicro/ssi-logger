@@ -16,6 +16,9 @@ var options = {
             "timestamp": true,
             "stderr": true
         },
+		"syslog": {
+			"enable": true
+		}
     }
 };
 
@@ -25,7 +28,9 @@ try {
     console.error(err);
 }
 
+process.title = "manual_amqp";
 log.open(options.transports);
+log.debug(options);
 
 const obj = {
     hello: "world",
