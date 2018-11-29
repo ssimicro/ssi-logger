@@ -204,7 +204,9 @@ function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
     logger.log = function () { logger.apply(null, Array.prototype.slice.call(arguments)); };
     _.forEach(level_names, function (level) {
-        logger[level.toLowerCase()] = function () { logger.apply(null, _.union([level], Array.prototype.slice.call(arguments))); };
+        logger[level.toLowerCase()] = function () {
+            return logger.apply(null, _.union([level], Array.prototype.slice.call(arguments)));
+        };
     });
 }
 
