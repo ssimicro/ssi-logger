@@ -196,6 +196,10 @@ describe('ssi-logger', function() {
 
             log('WARNING', message);
         });
+
+        it('should return formatted log messages', function () {
+            expect(log('INFO', 'test', { foo: 'bar' })).to.be('test foo=bar');
+        });
     });
 
     describe('convience', function () {
@@ -242,6 +246,10 @@ describe('ssi-logger', function() {
             });
 
             log.error(message);
+        });
+
+        it('should return formatted log messages', function () {
+            expect(log.info('test', { foo: 'bar' })).to.be('test foo=bar');
         });
 
     });
