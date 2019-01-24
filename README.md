@@ -231,7 +231,7 @@ a transport such that a LOG_ALERT message about the database being down will tri
 #### log.info(format, args ...)
 #### log.debug(format, args ...)
 
-Convience functions.
+Convenience functions.
 
 ### log.censor()
 
