@@ -222,6 +222,8 @@ a transport such that a LOG_ALERT message about the database being down will tri
 * `format`: a log message format string.
 * `args`: the `format` string will consume `args` for each % argument in the string.  Remaining arguments are appended to the log message, with objects and arrays beening flattened into key=value pairs.
 
+Log messages with level `CRIT`, `ALERT`, and `EMERG` will attempt to append a copy of the log message to `/var/tmp/$proc_name.stack`.
+
 #### log.emerg(format, args ...)
 #### log.alert(format, args ...)
 #### log.crit(format, args ...)

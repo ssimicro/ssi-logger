@@ -7,6 +7,7 @@ const os = require('os');
 const util = require('util');
 const logformat = require('logformat');
 const filterObject = require('./lib/filterObject.js');
+const moment = require('moment');
 const path = require('path');
 
 const level_names = [
@@ -73,12 +74,6 @@ function log(level, message) {
         return filterObject(arg, module.exports.censor());
     });
 
-    // Map level synonyms.
-    switch (level) {
-    case 'ERR': level = 'ERROR'; break;
-    case 'WARNING': level = 'WARN'; break;
-    }
-
     message = util.format.apply(null, _.map(args, logformat));
 
     // Censor any key=value pairs appearing in the formatted message.
@@ -103,6 +98,23 @@ function log(level, message) {
             return key + '=[redacted]';
         });
     });
+
+    // Map level synonyms.
+    switch (level) {
+    case 'ERR': level = 'ERROR'; break;
+    case 'WARNING': level = 'WARN'; break;
+    case 'CRIT':
+    case 'ALERT':
+    case 'EMERG':
+        try {
+            // Try to save the error locally.
+            const proc_name = path.basename(process.title);
+            fs.appendFileSync(path.join(process.env.TMPDIR || '/var/tmp', `${proc_name}.stack`), `${moment().toISOString()} ${proc_name}[${process.pid}] ${message}\n`);
+        } catch (e) {
+            console.error(message);
+        }
+        break;
+    }
 
     // Note that os.hostname() appears to only return FQDN when
     // the machine has a proper DNS A record.

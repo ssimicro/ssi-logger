@@ -200,9 +200,25 @@ describe('ssi-logger', function() {
         it('should return formatted log messages', function () {
             expect(log('INFO', 'test', { foo: 'bar' })).to.be('test foo=bar');
         });
+
+        it('should append log message to stack dump file for CRIT and above', function () {
+            const dump_file = path.join(process.env.TMPDIR || '/var/tmp', `${path.basename(process.title)}.stack`);
+
+            fs.unlinkSync(dump_file);
+            log.crit("save me!");
+            expect(fs.readFileSync(dump_file).toString()).to.contain("save me!");
+
+            fs.unlinkSync(dump_file);
+            log.alert("move along, nothing to see here");
+            expect(fs.readFileSync(dump_file).toString()).to.contain("move along, nothing to see here");
+
+            fs.unlinkSync(dump_file);
+            log.emerg("its a vicious little bunny rabbit");
+            expect(fs.readFileSync(dump_file).toString()).to.contain("its a vicious little bunny rabbit");
+        });
     });
 
-    describe('convience', function () {
+    describe('convenience', function () {
 
         it('should provide log.info()', function (done) {
             process.on('log', function testf(obj) {
