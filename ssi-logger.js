@@ -39,7 +39,7 @@ function loadConf(files) {
         transports: {
             amqp: {
                 url: 'amqp://guest:guest@localhost/',
-                enable: process.env.NODE_ENV === 'production'
+                enable: false,
             },
             console: {
                 enable: process.env.NODE_ENV !== 'production'
