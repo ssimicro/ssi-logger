@@ -784,7 +784,7 @@ describe('ssi-logger', function() {
             log.close();
             done();
         });
-
+        
         it('should log to console without user transports', (done) => {
             log.open(options.transports);
             const loggers = process.listeners("log");
@@ -843,6 +843,11 @@ describe('ssi-logger', function() {
             log.crit("don't criticize me");
             log.alert("stay alert");
             done();
+        });
+        it('should invoke optional callback on close()', (done) => {
+            log.open(options.transports);
+            log.info("hello world");
+            log.close(done);
         });
     });
 
@@ -944,8 +949,7 @@ describe('ssi-logger', function() {
             });
 
             afterEach((done) => {
-                log.close();
-                done();
+                log.close(done);
             });
 
             it('should queue log message', function (done) {
@@ -1008,8 +1012,7 @@ describe('ssi-logger', function() {
             });
 
             afterEach((done) => {
-                log.close();
-                done();
+                log.close(done);
             });
 
             describe('format=text', function () {

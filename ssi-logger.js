@@ -148,10 +148,18 @@ function dispatcher(event) {
     Object.keys(activeTransports).forEach((transport) => activeTransports[transport].log(event));
 }
 
-function close() {
+function close(optDone) {
     process.removeListener('log', dispatcher);
-    Object.keys(activeTransports).forEach((transport) => {
-        activeTransports[transport].end();
+    let closed = 0;
+    const transports = Object.keys(activeTransports);
+    transports.forEach((transport) => {
+        activeTransports[transport].end(() => {
+            if (transports.length <= ++closed) {
+                if (optDone) {
+                    optDone();
+                }
+            }
+        });
         delete activeTransports[transport];
     });
 }

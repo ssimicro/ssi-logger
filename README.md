@@ -265,9 +265,14 @@ Sets the list of fields to censor from all log messages.  Any number of fields m
     // { level: 'INFO', message: 'first_name=John last_name=Doe card_number=[redacted] password=[redacted]' }
 
 
-### log.close()
+### log.close(optDone)
 
 Close the transports like `syslog` and `amqp`.
+
+**Parameters**
+
+* `optDone`: optional callback once all the transports have closed.
+
 
 ### log.open(transportOptions[, userTransports])
 
