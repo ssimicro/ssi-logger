@@ -837,8 +837,23 @@ describe('ssi-logger', function() {
             log.open(_.defaultsDeep({syslog: {enable: true}}, options.transports));
             const loggers = process.listeners("log");
             expect(loggers.length).to.be(1);
+            log.debug("bug hunt");
             log.info("hello world");
             log.warn("danger Will Robinson!");
+            log.error("? this is not ed(1)");
+            log.crit("don't criticize me");
+            log.alert("stay alert");
+            done();
+        });
+        it('should log to console level >= error', (done) => {
+            log.open(_.defaultsDeep({console: {level: 'ERROR'}}));
+            const loggers = process.listeners("log");
+            expect(loggers.length).to.be(1);
+            // Not written to console.
+            log.debug("bug hunt");
+            log.info("hello world");
+            log.warn("danger Will Robinson!");
+            // Written to console.
             log.error("? this is not ed(1)");
             log.crit("don't criticize me");
             log.alert("stay alert");
