@@ -333,10 +333,20 @@ The base class for pre-defined and user transports.
 ```
 class Transport {
     constructor(options) {}
+
+    // Return true to log the event; otherwise false to ignore.
+    filter(event) {}
+
     log(event) {}
-    end() {}
+
+    // Close the transport.  Optional callback when done.
+    end(optDone) {}
 }
 ```
+
+**Options**
+  - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `DEBUG`.
+
 
 #### lib/transports/amqp
 
@@ -384,6 +394,7 @@ Example:
   - `color`: `true` to enable color coded log messages; defaults `true`.
   - `stderr`: `true` to direct log messages to standard error, otherwise standard output; default `false`.
   - `timestamp`: `true` to prepend ISO 8601 timestamp to all console messages; default `false`.
+  - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `DEBUG`.
 
 Logs all messages to the console in the form:
 
@@ -409,6 +420,7 @@ Colors can also be disabled at runtime with the `--no-color` command line option
   - `color`: `true` to enable color coded log messages; defaults `true`.
   - `stream`: `Stream` object to write log messages, one per line.
   - `timeout`: `true` to prepend ISO 8601 timestamp to all console messages; default `true`.
+  - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `DEBUG`.
 
 Logs all messages to the console in the form:
 

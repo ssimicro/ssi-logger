@@ -9,21 +9,6 @@ const logformat = require('logformat');
 const filterObject = require('./lib/filterObject.js');
 const path = require('path');
 
-const level_names = [
-    'SILLY',
-    'DEBUG',
-    'VERBOSE',
-    'INFO',
-    'NOTICE',
-    'WARN',
-    'WARNING',
-    'ERROR',
-    'ERR',
-    'CRIT',
-    'ALERT',
-    'EMERG',
-];
-
 // System wide configuration files in search/override order.
 const conf_files = [
     './ssi-logger.conf.defaults',
@@ -145,7 +130,9 @@ function defaults() {
 const activeTransports = {};
 
 function dispatcher(event) {
-    Object.keys(activeTransports).forEach((transport) => activeTransports[transport].log(event));
+    Object.keys(activeTransports)
+        .filter((transport) => activeTransports[transport].filter(event))
+        .forEach((transport) => activeTransports[transport].log(event));
 }
 
 function close(optDone) {
@@ -204,14 +191,14 @@ module.exports.loadConf = loadConf;                     // For testing.
 module.exports.open = open;
 module.exports.transformLogEvent = transformLogEvent;
 
-module.exports.level_names = level_names;
+module.exports.levelNames = require('./lib/logLevelNames');
 module.exports.activeTransports = activeTransports;
 module.exports.Transport = require('./lib/Transport');  // Expose for user transports.
 
 function addConvenienceFunctions(logger) {
     // Emulate the logger.level() API of winston so we can use our logger implementation as a drop in replacement
     logger.log = function () { logger.apply(null, Array.prototype.slice.call(arguments)); };
-    _.forEach(level_names, function (level) {
+    _.forEach(log.levelNames, function (level) {
         logger[level.toLowerCase()] = function () {
             return logger.apply(null, _.union([level], Array.prototype.slice.call(arguments)));
         };
