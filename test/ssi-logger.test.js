@@ -955,6 +955,17 @@ describe('ssi-logger', function() {
                     done();
                 }, 2000);
             });
+            it('should ignore channel already closed errors', function (done) {
+                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
+                expect(function () {
+                    // Simulate unexpected channel closure.
+                    transport.amqp.chan.close((err) => {
+                        // Attempt normal close.
+                        transport.amqp.close();
+                    });
+                }).to.not.throwException();
+                done();
+            });
         });
 
         describe('queue', function () {
