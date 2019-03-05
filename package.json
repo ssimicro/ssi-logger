@@ -1,6 +1,6 @@
 {
   "name": "ssi-logger",
-  "version": "4.3.0",
+  "version": "4.3.1",
   "description": "Simplified logging for node.js modules",
   "main": "ssi-logger.js",
   "directories": {
