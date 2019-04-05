@@ -10,15 +10,16 @@ var options = {
         "amqp": {
             "enable": true,
             "level": "DEBUG",
+            "traceLevel": 2,
         },
         "console": {
             "enable": true,
             "timestamp": true,
             "stderr": true
         },
-		"syslog": {
-			"enable": true
-		}
+        "syslog": {
+            "enable": true
+        }
     }
 };
 

@@ -374,6 +374,7 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
   - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
   - `facility`: optional syslog facility name, one of `AUTH`, `CRON`, `DAEMON`, `KERN`, `LOCAL0`, `LOCAL1`, `LOCAL2`, `LOCAL3`, `LOCAL4`, `LOCAL5`, `LOCAL6`, `LOCAL7`, `LPR`, `MAIL`, `NEWS`, `SYSLOG`, `USER`, `UUCP`; default `LOCAL0`.  Note the facility name in the AMQP log message is informational only.
   - `format`: one of `text`, `json`; default `text`.  `text` sends text log message with all the arguments flattened out into message.  `json` formats the message only those % arguments specified, the remaining unused are pased as JSON.
+  - `traceLevel`: 0 = disable, 1 = connection, 2 = verbose; default 0.
 
 Example:
 

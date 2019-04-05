@@ -15,6 +15,9 @@
         "secret"
     ],
     "transports": {
+        "amqp": {
+            "traceLevel": 0
+        },
         "console": {
             "timestamp": true,
             "stderr": true
