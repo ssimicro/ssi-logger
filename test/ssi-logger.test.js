@@ -933,27 +933,15 @@ describe('ssi-logger', function() {
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-                transport.amqp.closed();
+                transport.amqp.close();
                 expect(transport.amqp.conn).to.be(null);
                 done();
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
-                transport.amqp.closed();
+                transport.amqp.close();
                 expect(transport.amqp.conn).to.be(null);
                 done();
-            });
-            it('should reconnect on closed error when reconnect.retryTimeout > 0', function (done) {
-                transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
-                const conn_before = transport.amqp.conn;
-
-                transport.amqp.closed(new Error('error triggered by test'));
-
-                setTimeout(() => {
-                    expect(transport.amqp.conn).not.to.be(null);
-                    expect(transport.amqp.conn).not.to.be(conn_before);
-                    done();
-                }, 2000);
             });
             it('should ignore channel already closed errors', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
@@ -1650,28 +1638,6 @@ describe('ssi-logger', function() {
 
                 // Similate error, should disconnect, then reconnect.
                 log.activeTransports.amqp.amqp.bail(new Error('error triggered by test'));
-
-                log.info("message 2");
-                log.info("message 3");
-            });
-            it('should continue sending messages after a closed error and reconnect', function (done) {
-                consumer.consume(function (err, msg, next) {
-                    next(null);
-                    if (msg.fields.deliveryTag === 3) {
-                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(null);
-                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(conn_before);
-                        done();
-                    }
-                });
-
-                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
-                expect(log.activeTransports.amqp).not.to.be(null);
-                const conn_before = log.activeTransports.amqp.amqp.conn;
-
-                log.info("message 1");
-
-                // Similate error, should disconnect, then reconnect.
-                log.activeTransports.amqp.amqp.closed(new Error('error triggered by test'));
 
                 log.info("message 2");
                 log.info("message 3");
