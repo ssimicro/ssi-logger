@@ -911,45 +911,45 @@ describe('ssi-logger', function() {
             it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
 
-                transport.amqp.on('error', (err) => {
+                transport.producer.on('error', (err) => {
                     expect(err).not.be(null);
-                    expect(transport.amqp.conn).to.be(null);
+                    expect(transport.producer.conn).to.be(null);
                     done();
                 });
 
-                transport.amqp.bail(new Error('error triggered by test'));
+                transport.producer.bail(new Error('error triggered by test'));
             });
             it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
 
-                const conn_before = transport.amqp.conn;
-                transport.amqp.bail(new Error('error triggered by test'));
+                const conn_before = transport.producer.conn;
+                transport.producer.bail(new Error('error triggered by test'));
 
                 setTimeout(() => {
-                    expect(transport.amqp.conn).not.to.be(null);
-                    expect(transport.amqp.conn).not.to.be(conn_before);
+                    expect(transport.producer.conn).not.to.be(null);
+                    expect(transport.producer.conn).not.to.be(conn_before);
                     done();
                 }, 2000);
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-                transport.amqp.close();
-                expect(transport.amqp.conn).to.be(null);
+                transport.producer.close();
+                expect(transport.producer.conn).to.be(null);
                 done();
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
-                transport.amqp.close();
-                expect(transport.amqp.conn).to.be(null);
+                transport.producer.close();
+                expect(transport.producer.conn).to.be(null);
                 done();
             });
             it('should ignore channel already closed errors', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
                 expect(function () {
                     // Simulate unexpected channel closure.
-                    transport.amqp.chan.close((err) => {
+                    transport.producer.chan.close((err) => {
                         // Attempt normal close.
-                        transport.amqp.close();
+                        transport.producer.close();
                     });
                 }).to.not.throwException();
                 done();
@@ -973,7 +973,7 @@ describe('ssi-logger', function() {
 
                 log.info("Say something clever.");
 
-                const queue = log.activeTransports.amqp.amqp.queue;
+                const queue = log.activeTransports.amqp.producer.queue;
                 expect(queue.length).to.be(1);
                 const hdr = queue[0].publishOptions.headers;
                 expect(hdr.Level).to.be('INFO');
@@ -988,7 +988,7 @@ describe('ssi-logger', function() {
 
                 log.debug("Say something clever.");
                 log.warning("Hey little sister, what have you done?");
-                expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
                 done();
             });
             it('should not filter log message ERROR or above', function (done) {
@@ -999,7 +999,7 @@ describe('ssi-logger', function() {
                 log.error("Say something clever.");
                 log.alert("Hey little sister, what have you done?");
 
-                const queue = log.activeTransports.amqp.amqp.queue;
+                const queue = log.activeTransports.amqp.producer.queue;
                 expect(queue.length).to.be(2);
 
                 let hdr;
@@ -1036,7 +1036,7 @@ describe('ssi-logger', function() {
 
                     log.info();
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: `);
@@ -1048,7 +1048,7 @@ describe('ssi-logger', function() {
 
                     log.info("Say something clever.");
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
@@ -1060,7 +1060,7 @@ describe('ssi-logger', function() {
 
                     log.info({"hello": "world"}, ["foo", "bar"]);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: hello=world 0=foo 1=bar`);
@@ -1072,7 +1072,7 @@ describe('ssi-logger', function() {
 
                     log.info({name: 'ERROR_NAME', message: 'an error message'});
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: name=ERROR_NAME message="an error message"`);
@@ -1084,7 +1084,7 @@ describe('ssi-logger', function() {
 
                     log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue.length).to.be(1);
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever. hello=world 0=foo 1=bar`);
@@ -1096,7 +1096,7 @@ describe('ssi-logger', function() {
 
                     log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar`);
@@ -1108,7 +1108,7 @@ describe('ssi-logger', function() {
 
                     log.info("Append", "Jack", 123, 543.21, true, new Error('goofed'), {"hello": "world"}, ["foo", "bar"]);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Append Jack 123 543.21 true name=Error message=goofed hello=world 0=foo 1=bar`);
@@ -1122,7 +1122,7 @@ describe('ssi-logger', function() {
 
                     mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever, Jack N=123. hello=world 0=foo 1=bar request_id=7423927D-6F4E-43FE-846E-C474EA3488A3 foobar`);
@@ -1147,7 +1147,7 @@ describe('ssi-logger', function() {
 
                     log.info("Object with circular reference.", obj);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=world child.world=peace child.child.bang=war child.child.child=[circular]`);
@@ -1171,7 +1171,7 @@ describe('ssi-logger', function() {
                     log.censor(['bang', /ello/]);
                     log.info("Object with circular reference.", obj);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Object with circular reference. hello=[redacted] child.world=peace child.child.bang=[redacted] child.child.child=null`);
@@ -1209,7 +1209,7 @@ describe('ssi-logger', function() {
 
                     log.info("Special types and values.", basics, specials);
 
-                    const queue = log.activeTransports.amqp.amqp.queue;
+                    const queue = log.activeTransports.amqp.producer.queue;
                     expect(queue.length).to.be(1);
                     const hdr = queue[0].publishOptions.headers;
                     expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Special types and values. bool=true int=123456 decimal=1234.56 string=(wave) array.0=false array.1=321 array.2=543.21 array.3=beep array.4.0=3 array.4.1=2 array.4.2=1 array.5.foo=fighters null=null undefined=[undefined] Error.name=Error Error.message="You goofed!" Error.extra="cream pie" Error.inner.name=SyntaxError Error.inner.message="I am blind." Error.inner.inner.name=Error Error.inner.inner.message="Where\'s the kaboom?" Error.inner.inner.inner=null Function="[function noop]" Date=2017-08-10T13:56:19-04:00 RegExp="/^[Hh]ello .orld$/i" Infinity=[Infinity] NegInfinity=[-Infinity] NaN=[NaN]`);
@@ -1234,8 +1234,8 @@ describe('ssi-logger', function() {
 
                     log.info();
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be(null);
                     expect(payload).to.have.key('log_metadata');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1248,8 +1248,8 @@ describe('ssi-logger', function() {
 
                     log.info("Say something clever.");
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
                     expect(payload.log_metadata.Facility).to.be('LOCAL0');
@@ -1262,8 +1262,8 @@ describe('ssi-logger', function() {
 
                     log.info({"hello": "world"}, ["foo", "bar"]);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be(null);
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1278,8 +1278,8 @@ describe('ssi-logger', function() {
 
                     log.info({name: 'ERROR_NAME', message: 'an error message'});
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be('an error message');
                     expect(payload).to.have.keys('log_name', 'log_metadata');
                     expect(payload.log_name).to.be('ERROR_NAME');
@@ -1293,8 +1293,8 @@ describe('ssi-logger', function() {
 
                     log.info("Say something clever.", {"hello": "world"}, ["foo", "bar"]);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1309,8 +1309,8 @@ describe('ssi-logger', function() {
 
                     log.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever, Jack N=123.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1327,8 +1327,8 @@ describe('ssi-logger', function() {
 
                     mylog.info("Say something clever, %s N=%d.", "Jack", 123, {"hello": "world"}, ["foo", "bar"]);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be("Say something clever, Jack N=123.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1358,8 +1358,8 @@ describe('ssi-logger', function() {
 
                     log.info("Object with circular reference.", obj);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be("Object with circular reference.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1385,8 +1385,8 @@ describe('ssi-logger', function() {
                     log.censor(['bang', /ello/]);
                     log.info("Object with redacted content.", obj);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be("Object with redacted content.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1427,8 +1427,8 @@ describe('ssi-logger', function() {
 
                     log.info("Special types and values.", basics, specials);
 
-                    expect(log.activeTransports.amqp.amqp.queue.length).to.be(1);
-                    const payload = log.activeTransports.amqp.amqp.queue[0].payload;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(1);
+                    const payload = log.activeTransports.amqp.producer.queue[0].payload;
                     expect(payload.log_message).to.be("Special types and values.");
                     expect(payload).to.have.keys('log_metadata', 'log_details');
                     expect(payload.log_metadata.Level).to.be('INFO');
@@ -1512,13 +1512,13 @@ describe('ssi-logger', function() {
                 log.open(options.transports);
                 expect(log.activeTransports.amqp).not.to.be(null);
                 // Disable drain to force queuing.
-                log.activeTransports.amqp.amqp.isFlowing = false;
+                log.activeTransports.amqp.producer.isFlowing = false;
 
                 log.info("heaven");
                 log.info("world");
                 log.info("hell");
 
-                expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
+                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
                 done();
             });
             it('should flush queued messages on close()', function (done) {
@@ -1532,8 +1532,8 @@ describe('ssi-logger', function() {
                 log.open(options.transports);
                 expect(log.activeTransports.amqp).not.to.be(null);
                 // Disable drain to force queuing.
-                log.activeTransports.amqp.amqp.isFlowing = false;
-                expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+                log.activeTransports.amqp.producer.isFlowing = false;
+                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
 
                 log.info("message 1");
                 log.info("message 2");
@@ -1575,28 +1575,28 @@ describe('ssi-logger', function() {
                 consumer.consume(function (err, msg, next) {
                     next(null);
                     if (msg.fields.deliveryTag === 3) {
-                        expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+                        expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
                         done();
                     }
                 });
 
                 log.open(options.transports);
                 expect(log.activeTransports.amqp).not.to.be(null);
-                log.activeTransports.amqp.amqp.conn.emit('blocked');
-                expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+                log.activeTransports.amqp.producer.conn.emit('blocked');
+                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
 
                 log.info("message 1");
                 log.info("message 2");
                 log.info("message 3");
 
-                expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
-                log.activeTransports.amqp.amqp.conn.emit('unblocked');
+                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                log.activeTransports.amqp.producer.conn.emit('unblocked');
             });
             it('should simulate full write buffer, queue log messages, then drain', function (done) {
                 consumer.consume(function (err, msg, next) {
                     next(null);
                     if (msg.fields.deliveryTag === 4) {
-                        expect(log.activeTransports.amqp.amqp.queue.length).to.be(0);
+                        expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
                         done();
                     }
                 });
@@ -1605,16 +1605,16 @@ describe('ssi-logger', function() {
                 expect(log.activeTransports.amqp).not.to.be(null);
 
                 // Disable drain to force queuing.
-                log.activeTransports.amqp.amqp.isFlowing = false;
+                log.activeTransports.amqp.producer.isFlowing = false;
 
                 log.info("heaven");
                 log.info("world");
                 log.info("hell");
 
-                expect(log.activeTransports.amqp.amqp.queue.length).to.be(3);
+                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
 
                 // Enable drain.
-                log.activeTransports.amqp.amqp.isFlowing = true;
+                log.activeTransports.amqp.producer.isFlowing = true;
 
                 log.info("next message triggers drain");
 
@@ -1624,20 +1624,20 @@ describe('ssi-logger', function() {
                 consumer.consume(function (err, msg, next) {
                     next(null);
                     if (msg.fields.deliveryTag === 3) {
-                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(null);
-                        expect(log.activeTransports.amqp.amqp.conn).not.to.be(conn_before);
+                        expect(log.activeTransports.amqp.producer.conn).not.to.be(null);
+                        expect(log.activeTransports.amqp.producer.conn).not.to.be(conn_before);
                         done();
                     }
                 });
 
                 log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
                 expect(log.activeTransports.amqp).not.to.be(null);
-                const conn_before = log.activeTransports.amqp.amqp.conn;
+                const conn_before = log.activeTransports.amqp.producer.conn;
 
                 log.info("message 1");
 
                 // Similate error, should disconnect, then reconnect.
-                log.activeTransports.amqp.amqp.bail(new Error('error triggered by test'));
+                log.activeTransports.amqp.producer.bail(new Error('error triggered by test'));
 
                 log.info("message 2");
                 log.info("message 3");
