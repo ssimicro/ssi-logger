@@ -892,6 +892,7 @@ describe('ssi-logger', function() {
         });
 
         afterEach((done) => {
+            process.removeAllListeners("log_amqp_transport_gone");
             if (transport) {
                 transport.end();
             }
@@ -910,13 +911,12 @@ describe('ssi-logger', function() {
             });
             it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-
-                transport.producer.on('error', (err) => {
-                    expect(err).not.be(null);
-                    expect(transport.producer.conn).to.be(null);
+                process.on("log_amqp_transport_gone", (err) => {
+                    expect(err).not.to.be(null);
+                    expect(err.attempts).to.be(0);
+                    expect(err.message).to.contain("disabled");
                     done();
                 });
-
                 transport.producer.bail(new Error('error triggered by test'));
             });
             it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
@@ -929,19 +929,21 @@ describe('ssi-logger', function() {
                     expect(transport.producer.conn).not.to.be(null);
                     expect(transport.producer.conn).not.to.be(conn_before);
                     done();
-                }, 2000);
+                }, 3000);
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-                transport.producer.close();
-                expect(transport.producer.conn).to.be(null);
-                done();
+                transport.producer.close(() => {
+                    expect(transport.producer.conn).to.be(null);
+                    done();
+                });
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
-                transport.producer.close();
-                expect(transport.producer.conn).to.be(null);
-                done();
+                transport.producer.close(() => {
+                    expect(transport.producer.conn).to.be(null);
+                    done();
+                });
             });
             it('should ignore channel already closed errors', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
@@ -950,9 +952,9 @@ describe('ssi-logger', function() {
                     transport.producer.chan.close((err) => {
                         // Attempt normal close.
                         transport.producer.close();
+                        done();
                     });
                 }).to.not.throwException();
-                done();
             });
         });
 

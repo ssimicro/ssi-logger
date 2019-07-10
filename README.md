@@ -385,6 +385,10 @@ Example:
        }
     });
 
+**Process Events**
+
+`log_amqp_transport_gone`: When the AMQP connection is closed (server shutdown, forced disconnect from UI, unexpected disconnect) and reconnection is disabled or times out while trying to reconnect, then `log_amqp_transport_gone` is emitted to the `process`.
+
 
 #### lib/transports/console
 

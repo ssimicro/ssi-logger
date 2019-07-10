@@ -9,7 +9,7 @@ var options = {
     "transports": {
         "amqp": {
             "enable": true,
-            "level": "DEBUG",
+            "level": "INFO",
             "traceLevel": 2,
         },
         "console": {
@@ -32,6 +32,18 @@ try {
 process.title = "manual_amqp";
 log.open(options.transports);
 log.debug(options);
+
+process.on("log_amqp_transport_gone", (err) => {
+    console.error("log amqp transport closed", err);
+    process.exit(1);
+});
+
+if (_.has(log.activeTransports, "amqp")) {
+    log.debug({
+        localAddress: log.activeTransports.amqp.producer.localAddress,
+        localPort: log.activeTransports.amqp.producer.localPort
+    });
+}
 
 const obj = {
     hello: "world",
