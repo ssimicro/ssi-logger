@@ -18,6 +18,7 @@ var options = {
             "traceLevel": 2,
         },
         "console": {
+            "chunkSize": 42,
             "enable": true,
             "timestamp": true,
             "stderr": true
@@ -39,5 +40,6 @@ try {
 log.open(options.transports);
 
 log.info('This should go to all the log transports.');
+log.warn('This log message should be split into several lines in the console transport (it should be one message in the other transports).');
 
 log.close();

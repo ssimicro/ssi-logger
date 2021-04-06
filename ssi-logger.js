@@ -8,6 +8,7 @@ const util = require('util');
 const logformat = require('logformat');
 const filterObject = require('./lib/filterObject.js');
 const path = require('path');
+const uuid = require('uuid');
 
 // System wide configuration files in search/override order.
 const conf_files = [
@@ -94,12 +95,13 @@ function log(level, message) {
     // the machine has a proper DNS A record.
 
     process.emit('log', {
-        version: '1.0.0',
+        version: '1.1.0',
         created: new Date(),
         host: os.hostname(),
         level: level,
         message: message,
-        data: args
+        data: args,
+        eid: uuid.v4().substring(0, 8),
     });
 
     return message;
@@ -133,7 +135,7 @@ const activeTransports = {};
 function dispatcher(event) {
     Object.keys(activeTransports)
         .filter((transport) => activeTransports[transport].filter(event))
-        .forEach((transport) => activeTransports[transport].log(event));
+        .forEach((transport) => activeTransports[transport].chunkify(event).forEach((chunk) => activeTransports[transport].log(chunk)));
 }
 
 function close(optDone) {
