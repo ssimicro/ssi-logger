@@ -169,6 +169,7 @@ SSi Logger will look system wide configuration files in several places, reading 
 
 The general structure of a configuration file is an JSON object containing:
 
+* `messageMaxLength`: maximum message length. Any message longer than this limit is truncated to this limit. Default `8192`.
 * `censor`: an array of key field names to censor.
 * `transports`: a collection of `ssi-logger` transports to give `log.open()`.
 

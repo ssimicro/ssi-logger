@@ -36,6 +36,9 @@ describe('ssi-logger', function() {
         'test/ssi-logger.conf',
         conf_tmp,
     ];
+    const conf_short_msg = [
+        'test/short-msg.conf',
+    ];
 
     describe('configuration', () => {
         before(() => {
@@ -55,6 +58,8 @@ describe('ssi-logger', function() {
         });
         it('should have sensible internal defaults', () => {
             log.loadConf();
+            expect(log.options).to.have.key('messageMaxLength');
+            expect(log.options.messageMaxLength).to.be(8192);
             expect(log.options).to.have.key('censor');
             expect(log.options.censor.length).to.be(0);
             expect(log.options).to.have.key('transports');
@@ -199,6 +204,20 @@ describe('ssi-logger', function() {
 
         it('should return formatted log messages', function () {
             expect(log('INFO', 'test', { foo: 'bar' })).to.be('test foo=bar');
+        });
+
+        it('should truncate messages to messageMaxLength', function (done) {
+            const message = 'This is a test of the message truncation feature';
+            const truncated = 'This is a test o';
+            log.loadConf(conf_short_msg);
+            process.on('log', function testf(obj) {
+                process.removeListener('log', testf);
+                expect(obj.message).to.be(truncated);
+                log.loadConf();
+                done();
+            });
+
+            log('WARNING', message);
         });
     });
 

@@ -20,6 +20,7 @@ const conf_files = [
 
 function loadConf(files) {
     module.exports.options = {
+        messageMaxLength: 8192,
         censor: [],
         transports: {
             amqp: {
@@ -64,7 +65,7 @@ function log(level, message) {
     case 'WARNING': level = 'WARN'; break;
     }
 
-    message = util.format.apply(null, _.map(args, logformat));
+    message = util.format.apply(null, _.map(args, logformat)).substring(0, module.exports.options.messageMaxLength);
 
     // Censor any key=value pairs appearing in the formatted message.
     module.exports.censor().forEach(function (key) {
