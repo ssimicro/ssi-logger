@@ -219,6 +219,13 @@ describe('ssi-logger', function() {
 
             log('WARNING', message);
         });
+
+        it('should log Error .cause', () => {
+            const cause = new Error('bad credentials')
+            const err = new Error('could not connect to db', { cause });
+            expect(log.error(err)).to.contain('bad credentials');
+            expect(log.error(err)).to.contain('could not connect');
+        });
     });
 
     describe('convience', function () {
