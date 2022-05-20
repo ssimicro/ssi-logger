@@ -142,6 +142,12 @@ function close(optDone) {
     process.removeListener('log', dispatcher);
     let closed = 0;
     const transports = Object.keys(activeTransports);
+
+    // ensure optDone is called when there are no transports
+    if (transports.length === 0 && typeof optDone === 'function') {
+        return optDone();
+    }
+
     transports.forEach((transport) => {
         activeTransports[transport].end(() => {
             if (transports.length <= ++closed) {
@@ -152,6 +158,7 @@ function close(optDone) {
         });
         delete activeTransports[transport];
     });
+
 }
 
 // Install a transport if options contains a property with a name

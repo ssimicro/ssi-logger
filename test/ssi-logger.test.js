@@ -890,6 +890,9 @@ describe('ssi-logger', function() {
             log.info("hello world");
             log.close(done);
         });
+        it('should invoke optional callback on close() even when logger is already closed', (done) => {
+            log.close(done);
+        });
     });
 
     optDescribe('AmqpTransport', function () {
