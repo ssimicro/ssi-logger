@@ -32,15 +32,15 @@
     "chalk": "^4.1.0",
     "deasync": "0.1.26",
     "lodash": "^4.17.21",
-    "logformat": "^3.1.0",
+    "logformat": "^3.1.1",
     "modern-syslog": "^1.2.0",
-    "moment": "^2.29.3",
+    "moment": "^2.29.4",
     "semver": "7.3.7",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
     "expect.js": "^0.3.1",
-    "jshint": "^2.13.4",
+    "jshint": "^2.13.5",
     "mocha": "^10.0.0"
   },
   "jshintConfig": {
