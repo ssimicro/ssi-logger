@@ -1426,7 +1426,7 @@ describe('ssi-logger', function() {
                     expect(payload.log_details[0].child.child.bang).to.be("[redacted]");
                     done();
                 });
-                it('should handle data with special types and values', function (done) {
+                it('should handle data with special types and values extended', function (done) {
                     const basics = {
                         "bool": true,
                         "int": 123456,
