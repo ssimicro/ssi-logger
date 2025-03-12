@@ -1,4 +1,3 @@
-
 "use strict";
 
 const _ = require('lodash');
@@ -9,6 +8,7 @@ const logformat = require('logformat');
 const filterObject = require('./lib/filterObject.js');
 const path = require('path');
 const uuid = require('uuid');
+const async = require('async');
 
 // System wide configuration files in search/override order.
 const conf_files = [
@@ -163,16 +163,21 @@ function close(optDone) {
 
 // Install a transport if options contains a property with a name
 // that matches a known transport and has `enable` set to `true`.
-function open(options, user_transports) {
+function open(options, user_transports, callback) {
     close();
     options = _.defaultsDeep(options, module.exports.options.transports);
     const mergedTransports = _.merge({}, transports, user_transports);
-    _.forEach(options, (args, transport) => {
+    async.eachSeries(options, (args, transport) => {
         if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(mergedTransports, transport)) {
             activeTransports[transport] = new mergedTransports[transport](args);
+            activeTransports[transport].open(callback);
         }
+    }, (err) => {
+        if (err) {
+            return options.onConnectError(err);
+        }
+        process.on('log', dispatcher);
     });
-    process.on('log', dispatcher);
 }
 
 function transformLogEvent(log_event) {

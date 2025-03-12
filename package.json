@@ -30,7 +30,7 @@
   "dependencies": {
     "amqplib": "^0.10.3",
     "chalk": "^4.1.0",
-    "deasync": "0.1.28",
+    "async": "3.2.6",
     "lodash": "^4.17.21",
     "logformat": "^3.1.2",
     "@ssimicro/postmodern-syslog": "^2.0.0",
