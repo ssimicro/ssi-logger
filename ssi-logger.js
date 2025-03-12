@@ -167,16 +167,19 @@ function open(options, user_transports, callback) {
     close();
     options = _.defaultsDeep(options, module.exports.options.transports);
     const mergedTransports = _.merge({}, transports, user_transports);
-    async.eachSeries(options, (args, transport) => {
+    _.forEach(options, (args, transport) => {
         if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(mergedTransports, transport)) {
             activeTransports[transport] = new mergedTransports[transport](args);
-            activeTransports[transport].open(callback);
         }
+    });
+    process.on('log', dispatcher);
+
+    async.eachSeries(Object.keys(activeTransports), (transport) => {
+        activeTransports[transport].open(callback);
     }, (err) => {
         if (err) {
-            return options.onConnectError(err);
+            options.onConnectError(err);
         }
-        process.on('log', dispatcher);
     });
 }
 
