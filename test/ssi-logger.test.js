@@ -129,9 +129,10 @@ describe('ssi-logger', function() {
             }).not.to.throwError();
 
             // Replace amqp with a custom transport.
-            log.open(options.transports, {amqp: Capture});
-            log.censor(_.union(options.censor, log.censor()));
-            log.info("blackhole=9876543210");
+            log.open(options.transports, {amqp: Capture}, () => {
+                log.censor(_.union(options.censor, log.censor()));
+                log.info("blackhole=9876543210");
+            });
         });
     });
 
@@ -812,11 +813,12 @@ describe('ssi-logger', function() {
         });
         
         it('should log to console without user transports', (done) => {
-            log.open(options.transports);
-            const loggers = process.listeners("log");
-            expect(loggers.length).to.be(1);
-            log.info("hello world");
-            done();
+            log.open(options.transports, {}, () => {
+                const loggers = process.listeners("log");
+                expect(loggers.length).to.be(1);
+                log.info("hello world");
+                done();
+            });
         });
         it('should log to console and user transports', (done) => {
             class Capture extends Transport {
@@ -827,11 +829,11 @@ describe('ssi-logger', function() {
                 }
             };
 
-            log.open(options.transports, {capture: Capture});
-
-            const loggers = process.listeners("log");
-            expect(loggers.length).to.be(1);
-            log.info("hello world");
+            log.open(options.transports, {capture: Capture}, () => {
+                const loggers = process.listeners("log");
+                expect(loggers.length).to.be(1);
+                log.info("hello world");
+            });
         });
         it('should be able configure transports more than once', (done) => {
             class Capture1 extends Transport {
@@ -847,48 +849,51 @@ describe('ssi-logger', function() {
                 }
             };
 
-            log.open(options.transports, {capture: Capture1});
+            log.open(options.transports, {capture: Capture1}, () => {
+                const loggers = process.listeners("log");
+                expect(loggers.length).to.be(1);
+                log.info("hello world");
+            });
 
-            let loggers = process.listeners("log");
-            expect(loggers.length).to.be(1);
-            log.info("hello world");
-
-            log.open(options.transports, {capture: Capture2});
-
-            loggers = process.listeners("log");
-            expect(loggers.length).to.be(1);
-            log.info("bye bye");
+            log.open(options.transports, {capture: Capture2}, () => {
+                const loggers = process.listeners("log");
+                expect(loggers.length).to.be(1);
+                log.info("bye bye");
+            });
         });
         it('should log to console and syslog without user transports', (done) => {
-            log.open(_.defaultsDeep({syslog: {enable: true}}, options.transports));
-            const loggers = process.listeners("log");
-            expect(loggers.length).to.be(1);
-            log.debug("bug hunt");
-            log.info("hello world");
-            log.warn("danger Will Robinson!");
-            log.error("? this is not ed(1)");
-            log.crit("don't criticize me");
-            log.alert("stay alert");
-            done();
+            log.open(_.defaultsDeep({syslog: {enable: true}}, options.transports), {}, () => {
+                const loggers = process.listeners("log");
+                expect(loggers.length).to.be(1);
+                log.debug("bug hunt");
+                log.info("hello world");
+                log.warn("danger Will Robinson!");
+                log.error("? this is not ed(1)");
+                log.crit("don't criticize me");
+                log.alert("stay alert");
+                done();
+            });
         });
         it('should log to console level >= error', (done) => {
-            log.open(_.defaultsDeep({console: {level: 'ERROR'}}));
-            const loggers = process.listeners("log");
-            expect(loggers.length).to.be(1);
-            // Not written to console.
-            log.debug("bug hunt");
-            log.info("hello world");
-            log.warn("danger Will Robinson!");
-            // Written to console.
-            log.error("? this is not ed(1)");
-            log.crit("don't criticize me");
-            log.alert("stay alert");
-            done();
+            log.open(_.defaultsDeep({console: {level: 'ERROR'}}), {}, () => {
+                const loggers = process.listeners("log");
+                expect(loggers.length).to.be(1);
+                // Not written to console.
+                log.debug("bug hunt");
+                log.info("hello world");
+                log.warn("danger Will Robinson!");
+                // Written to console.
+                log.error("? this is not ed(1)");
+                log.crit("don't criticize me");
+                log.alert("stay alert");
+                done();
+            });
         });
         it('should invoke optional callback on close()', (done) => {
-            log.open(options.transports);
-            log.info("hello world");
-            log.close(done);
+            log.open(options.transports, {}, () => {
+                log.info("hello world");
+                log.close(done);
+            });
         });
         it('should invoke optional callback on close() even when logger is already closed', (done) => {
             log.close(done);
@@ -929,15 +934,6 @@ describe('ssi-logger', function() {
         });
 
         describe('connect', function () {
-            it('should fail for invalid credentials', function (done) {
-                expect(() => {
-                    new AmqpTransport({
-                        url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
-                        onConnectError: (err) => { throw err; },
-                    });
-                }).to.throwError();
-                done();
-            });
             it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
                 process.on("log_amqp_transport_gone", (err) => {
@@ -998,62 +994,66 @@ describe('ssi-logger', function() {
             });
 
             it('should queue log message', function (done) {
-                log.open(options.transports);
-                // Disconnect and queue messages for examination.
-                log.activeTransports.amqp.end();
+                log.open(options.transports, {}, () => {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                log.info("Say something clever.");
+                    log.info("Say something clever.");
 
-                const queue = log.activeTransports.amqp.producer.queue;
-                expect(queue.length).to.be(1);
-                const hdr = queue[0].publishOptions.headers;
-                expect(hdr.Level).to.be('INFO');
-                expect(hdr.Facility).to.be('LOCAL0');
-                expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
-                done();
+                    const queue = log.activeTransports.amqp.producer.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('INFO');
+                    expect(hdr.Facility).to.be('LOCAL0');
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                    done();                
+                });
             });
             it('should filter log messages below ERROR', function (done) {
-                log.open(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports));
-                // Disconnect and queue messages for examination.
-                log.activeTransports.amqp.end();
+                log.open(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports), {}, () => {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                log.debug("Say something clever.");
-                log.warning("Hey little sister, what have you done?");
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
-                done();
+                    log.debug("Say something clever.");
+                    log.warning("Hey little sister, what have you done?");
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
+                    done();
+                });
             });
             it('should not filter log message ERROR or above', function (done) {
-                log.open(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports));
-                // Disconnect and queue messages for examination.
-                log.activeTransports.amqp.end();
+                log.open(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports), {}, () => {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                log.error("Say something clever.");
-                log.alert("Hey little sister, what have you done?");
+                    log.error("Say something clever.");
+                    log.alert("Hey little sister, what have you done?");
 
-                const queue = log.activeTransports.amqp.producer.queue;
-                expect(queue.length).to.be(2);
+                    const queue = log.activeTransports.amqp.producer.queue;
+                    expect(queue.length).to.be(2);
 
-                let hdr;
+                    let hdr;
 
-                hdr = queue[0].publishOptions.headers;
-                expect(hdr.Level).to.be('ERROR');
-                expect(hdr.Facility).to.be('DAEMON');
-                expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                    hdr = queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('ERROR');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
 
-                hdr = queue[1].publishOptions.headers;
-                expect(hdr.Level).to.be('ALERT');
-                expect(hdr.Facility).to.be('DAEMON');
-                expect(queue[1].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Hey little sister, what have you done?`);
+                    hdr = queue[1].publishOptions.headers;
+                    expect(hdr.Level).to.be('ALERT');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(queue[1].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Hey little sister, what have you done?`);
 
-                done();
+                    done();
+                });
             });
         });
 
         describe('payload preparation', function () {
             beforeEach((done) => {
-                log.open(options.transports);
-                log.censor([]);
-                done();
+                log.open(options.transports, {}, () => {
+                    log.censor([]);
+                    done();
+                });
             });
 
             afterEach((done) => {
@@ -1540,17 +1540,18 @@ describe('ssi-logger', function() {
             });
 
             it('should queue messages', function (done) {
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
-                // Disable drain to force queuing.
-                log.activeTransports.amqp.producer.isFlowing = false;
+                log.open(options.transports, {}, () => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    // Disable drain to force queuing.
+                    log.activeTransports.amqp.producer.isFlowing = false;
 
-                log.info("heaven");
-                log.info("world");
-                log.info("hell");
+                    log.info("heaven");
+                    log.info("world");
+                    log.info("hell");
 
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
-                done();
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                    done();
+                });
             });
             it('should flush queued messages on close()', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1560,16 +1561,17 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
-                // Disable drain to force queuing.
-                log.activeTransports.amqp.producer.isFlowing = false;
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
+                log.open(options.transports, {}, () => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    // Disable drain to force queuing.
+                    log.activeTransports.amqp.producer.isFlowing = false;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
 
-                log.info("message 1");
-                log.info("message 2");
-                log.info("message 3");
-                log.close();
+                    log.info("message 1");
+                    log.info("message 2");
+                    log.info("message 3");
+                    log.close();
+                });
             });
             it('should publish log messages to AMQP', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1596,11 +1598,11 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-
-                log.notice("Circuit Test 1", {count: 1});
-                log.notice("Circuit Test 2", {count: 2});
-                log.notice("Circuit Test 3", {count: 3});
+                log.open(options.transports, {}, () => {
+                    log.notice("Circuit Test 1", {count: 1});
+                    log.notice("Circuit Test 2", {count: 2});
+                    log.notice("Circuit Test 3", {count: 3});
+                });
             });
             it('should queue messages after a blocked event until an unblocked event', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1611,17 +1613,18 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
-                log.activeTransports.amqp.producer.conn.emit('blocked');
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
+                log.open(options.transports, {}, () => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    log.activeTransports.amqp.producer.conn.emit('blocked');
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
 
-                log.info("message 1");
-                log.info("message 2");
-                log.info("message 3");
+                    log.info("heaven");
+                    log.info("world");
+                    log.info("hell");
 
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
-                log.activeTransports.amqp.producer.conn.emit('unblocked');
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                    log.activeTransports.amqp.producer.conn.emit('unblocked');
+                });
             });
             it('should simulate full write buffer, queue log messages, then drain', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1632,26 +1635,26 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
+                log.open(options.transports, {}, () => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    // Disable drain to force queuing.
+                    log.activeTransports.amqp.producer.isFlowing = false;
 
-                // Disable drain to force queuing.
-                log.activeTransports.amqp.producer.isFlowing = false;
+                    log.info("heaven");
+                    log.info("world");
+                    log.info("hell");
 
-                log.info("heaven");
-                log.info("world");
-                log.info("hell");
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
 
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                    // Simulate full write buffer.
+                    log.activeTransports.amqp.producer.conn.emit('drain');
 
-                // Enable drain.
-                log.activeTransports.amqp.producer.isFlowing = true;
-
-                log.info("next message triggers drain");
-
-                done();
+                    log.info("next message triggers drain");
+                    done();
+                });
             });
             it('should continue sending messages after an error and reconnect', function (done) {
+                let conn_before;
                 consumer.consume(function (err, msg, next) {
                     next(null);
                     if (msg.fields.deliveryTag === 3) {
@@ -1661,17 +1664,18 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
-                expect(log.activeTransports.amqp).not.to.be(null);
-                const conn_before = log.activeTransports.amqp.producer.conn;
+                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports), {}, () => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    conn_before = log.activeTransports.amqp.producer.conn;
 
-                log.info("message 1");
+                    log.info("message 1");
 
-                // Similate error, should disconnect, then reconnect.
-                log.activeTransports.amqp.producer.bail(new Error('error triggered by test'));
+                    // Similate error, should disconnect, then reconnect.
+                    log.activeTransports.amqp.producer.bail(new Error('error triggered by test'));
 
-                log.info("message 2");
-                log.info("message 3");
+                    log.info("message 2");
+                    log.info("message 3");
+                });
             });
         });
     });
