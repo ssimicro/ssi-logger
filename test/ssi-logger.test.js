@@ -974,10 +974,12 @@ describe('ssi-logger', function() {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
                 expect(function () {
                     // Simulate unexpected channel closure.
-                    transport.producer.chan.close((err) => {
-                        // Attempt normal close.
-                        transport.producer.close();
-                        done();
+                    transport.producer.connect((err) => {
+                        transport.producer.chan.close((err) => {
+                            // Attempt normal close.
+                            transport.producer.close();
+                            done();
+                        });
                     });
                 }).to.not.throwException();
             });
