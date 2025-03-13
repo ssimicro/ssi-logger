@@ -174,12 +174,13 @@ function open(options, user_transports, callback) {
     });
     process.on('log', dispatcher);
 
-    async.eachSeries(Object.keys(activeTransports), (transport) => {
+    async.eachSeries(Object.keys(activeTransports), (transport, callback) => {
         activeTransports[transport].open(callback);
     }, (err) => {
         if (err) {
-            options.onConnectError(err);
+            return callback(err);
         }
+        callback();
     });
 }
 

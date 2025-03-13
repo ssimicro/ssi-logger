@@ -47,7 +47,12 @@ Basic Usage:
         }
     };
     
-    log.open(options.logger.transports);
+    log.open(options.logger.transports, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
+    });
     
     log.info('Ready to rock!');
 
@@ -84,7 +89,12 @@ With censorship:
         }
     };
 
-    log.open(options.logger.transports);
+    log.open(options.logger.transports, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
+    });
     log.censor(options.logger.censor);
 
     log('INFO', { first_name: 'John', last_name: 'Doe', card_number: '1234123412341234' });
@@ -120,7 +130,12 @@ Logging to a file with daily log rotation:
         }
     };
 
-    log.open(options.logger.transports);
+    log.open(options.logger.transports, (err) => {
+        if (err) {
+            ...
+        }
+        ...
+    });
 
     log('INFO', 'This message gets logged to a file');
 
@@ -205,7 +220,12 @@ Here's a setup example for a project using multiple transports to log messages. 
         }
     });
     
-    log.open(options.logger.transports);
+    log.open(options.logger.transports, (err) => {
+        if (err) {
+            ...
+        }
+        ...
+    });
     
     log.info('Ready to rock!');
 
@@ -275,7 +295,7 @@ Close the transports like `syslog` and `amqp`.
 * `optDone`: optional callback once all the transports have closed.
 
 
-### log.open(transportOptions[, userTransports])
+### log.open(transportOptions, userTransports, callback)
 
 **Parameters**
 
@@ -285,8 +305,8 @@ Close the transports like `syslog` and `amqp`.
    - `stream`: optional stream transport options, see below
    - `syslog`: optional SysLog transport options, see below
    - `user_transport`: optional options for a `user_transport`
-
 * `userTransports`: an object with one or more user transport functions.  For example:
+* `callback`: a function to handle error triggered by open() class method
 ```
     const Transport = require('log').Transport;
 
@@ -307,6 +327,11 @@ Close the transports like `syslog` and `amqp`.
         tripwire: {enable: process.env.NODE_ENV !== 'production'},
     }, {
         tripwire: TripwireTransport,
+    }, (err) => {
+        if(err) {
+            ...
+        }
+        ...
     });
 ```
 
@@ -417,6 +442,11 @@ Colors can also be disabled at runtime with the `--no-color` command line option
 
     log.open({
         console: {colour: true, timestamp: true, stderr: true}
+    }, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
     });
 
 
@@ -444,6 +474,11 @@ Colors can also be disabled at runtime with the `--no-color` command line option
 
     log.open({
         stream: {enable: true, stream: logfile}
+    }, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
     });
 
 
@@ -463,16 +498,31 @@ Examples:
     // default minimum log level to INFO
     log.open({
         syslog: {facility: 'LOG_LOCAL1'}
+    }, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
     });
 
     // set minimum log level to ERROR
     log.open({
         syslog: {facility: 'LOG_LOCAL2', level: 'ERROR'}
+    }, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
     });
 
     // set minimum log level to DEBUG
     log.open({
         syslog: {facility: 'LOG_LOCAL3', level: 'DEBUG'}
+    }, {}, (err) => {
+        if (err) {
+            ...
+        }
+        ...
     });
 
 ### log.defaults(...)

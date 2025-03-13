@@ -37,9 +37,13 @@ try {
     console.error(err);
 }
 
-log.open(options.transports);
+log.open(options.transports, {}, (err) => {
+    if (err){
+        console.error("log.open transport failed ", err);
+        process.exit(1);
+    }
+    log.info('This should go to all the log transports.');
+    log.warn('This log message should be split into several lines in the console transport (it should be one message in the other transports).');
 
-log.info('This should go to all the log transports.');
-log.warn('This log message should be split into several lines in the console transport (it should be one message in the other transports).');
-
-log.close();
+    log.close();
+});

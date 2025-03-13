@@ -3,7 +3,7 @@
 var log = require('../');
 
 function genLogs(color, timestamp) {
-    var logger = log.open({console: {color: color, timestamp: timestamp}});
+    var logger = log.open({console: {color: color, timestamp: timestamp}}, {}, () => {});
     var levels = [ 'EMERG', 'ALERT', 'CRIT', 'ERR', 'WARNING', 'NOTICE', 'INFO', 'DEBUG' ];
     for (var i = 0; i < levels.length; i++) {
         log(levels[i], "The quick brown fox jumps over the lazy dog");

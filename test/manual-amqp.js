@@ -30,53 +30,59 @@ try {
 }
 
 process.title = "manual_amqp";
-log.open(options.transports);
-log.debug(options);
+log.open(options.transports, {}, (err) => {
+    if (err) {
+        console.error("log.open transport failed ", err);
+        process.exit(1);
+    }
 
-process.on("log_amqp_transport_gone", (err) => {
-    console.error("log amqp transport closed", err);
-    process.exit(1);
-});
+    log.debug(options);
 
-if (_.has(log.activeTransports, "amqp")) {
-    log.debug({
-        localAddress: log.activeTransports.amqp.producer.localAddress,
-        localPort: log.activeTransports.amqp.producer.localPort
+    process.on("log_amqp_transport_gone", (err) => {
+        console.error("log amqp transport closed", err);
+        process.exit(1);
     });
-}
 
-const obj = {
-    hello: "world",
-    child: {
-        world: "peace",
+    if (_.has(log.activeTransports, "amqp")) {
+        log.debug({
+            localAddress: log.activeTransports.amqp.producer.localAddress,
+            localPort: log.activeTransports.amqp.producer.localPort
+        });
+    }
+
+    const obj = {
+        hello: "world",
         child: {
-            bang: "war",
-            child: null
+            world: "peace",
+            child: {
+                bang: "war",
+                child: null
+            }
         }
-    }
-};
+    };
 
-const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
+    const mylog = log.defaults({ request_id: '7423927D-6F4E-43FE-846E-C474EA3488A3' }, 'foobar');
 
-mylog.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, 1234, ["foo", "bar"], false, new Error('daffy'), {hello: 'bye'}, ['x','y','z']);
+    mylog.info("Hello world, %s", "Jack", { hello: 'world', count: 123, deep: obj }, 1234, ["foo", "bar"], false, new Error('daffy'), {hello: 'bye'}, ['x','y','z']);
 
-log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, true, ["bar", "bat"], "slippery", 321);
-log.error(new Error("daffy was here"), 987, "bob", obj);
+    log.info("Other world, %s", "Smityh", { hello: 'woot', count: 124 }, true, ["bar", "bat"], "slippery", 321);
+    log.error(new Error("daffy was here"), 987, "bob", obj);
 
-setTimeout(function () {
-    for (var i = 0; i < 100; i++) {
-        log.debug({count: i});
-    }
+    setTimeout(function () {
+        for (var i = 0; i < 100; i++) {
+            log.debug({count: i});
+        }
 
-    log.info("an error type", new Error("goofy"), new SyntaxError('obtuse'));
+        log.info("an error type", new Error("goofy"), new SyntaxError('obtuse'));
 
-    console.log(`
-Test 'close' event handler:
-- go RabbitMQ (developers) -> Connections
-- find your IP and click
-- bottom of IP Connection page, click Force Close button
-- check /var/tmp/node.stack
-`
-    );
+        console.log(`
+    Test 'close' event handler:
+    - go RabbitMQ (developers) -> Connections
+    - find your IP and click
+    - bottom of IP Connection page, click Force Close button
+    - check /var/tmp/node.stack
+    `
+        );
 
-}, 5000);
+    }, 5000);
+});

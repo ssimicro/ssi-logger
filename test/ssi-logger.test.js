@@ -845,6 +845,8 @@ describe('ssi-logger', function() {
 
             class Capture2 extends Transport {
                 log(log_event) {
+                    expect(log_event).not.to.be(null);
+                    expect(log_event.message).to.be("bye bye");
                     done();
                 }
             };
@@ -853,12 +855,12 @@ describe('ssi-logger', function() {
                 const loggers = process.listeners("log");
                 expect(loggers.length).to.be(1);
                 log.info("hello world");
-            });
 
-            log.open(options.transports, {capture: Capture2}, () => {
-                const loggers = process.listeners("log");
-                expect(loggers.length).to.be(1);
-                log.info("bye bye");
+                log.open(options.transports, {capture: Capture2}, () => {
+                    const loggers2 = process.listeners("log");
+                    expect(loggers2.length).to.be(1);
+                    log.info("bye bye");
+                });
             });
         });
         it('should log to console and syslog without user transports', (done) => {
