@@ -207,7 +207,7 @@ module.exports.censor = censor;
 module.exports.close = close;
 module.exports.defaults = defaults;
 module.exports.loadConf = loadConf;                     // For testing.
-module.exports.open = open;
+module.exports.open = util.promisify(open);
 module.exports.transformLogEvent = transformLogEvent;
 
 module.exports.levelNames = require('./lib/logLevelNames');
