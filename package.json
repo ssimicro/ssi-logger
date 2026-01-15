@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/ssimicro/ssi-logger",
   "dependencies": {
-    "amqplib": "^0.10.3",
+    "amqplib": "^0.10.9",
     "chalk": "^4.1.0",
     "deasync": "0.1.28",
     "lodash": "^4.17.21",
