@@ -277,6 +277,18 @@ Close the transports like `syslog` and `amqp`.
 
 ### log.open(transportOptions[, userTransports])
 
+`log.open()` is an `async` function and returns a `Promise`. All enabled
+transports are instantiated synchronously and the `log` event listener is
+attached before the returned `Promise` settles, so it is safe to start logging
+immediately after calling `log.open()` without awaiting — messages emitted
+before a transport finishes its asynchronous setup are buffered by that
+transport. `await` the returned `Promise` when you need each transport's setup
+to be complete first (for example, an established AMQP connection):
+
+```
+    await log.open(options.logger.transports);
+```
+
 **Parameters**
 
 * `transportOptions`: contains one or more transports to configure
@@ -336,6 +348,11 @@ The base class for pre-defined and user transports.
 class Transport {
     constructor(options) {}
 
+    // Asynchronous setup performed after construction (e.g. opening a network
+    // connection).  Awaited by log.open().  The default is a no-op; override
+    // it when a transport needs async setup.
+    async open() {}
+
     // Return true to log the event; otherwise false to ignore.
     filter(event) {}
 
@@ -346,6 +363,10 @@ class Transport {
 }
 ```
 
+Connection/setup work belongs in `open()` rather than the constructor: the
+constructor only stores configuration, and `log.open()` awaits each transport's
+`open()` after constructing it.
+
 **Options**
   - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `DEBUG`.
 
@@ -353,6 +374,8 @@ class Transport {
 #### lib/transports/amqp
 
 Log large JSON messages to an AMQP server.  In the event of a connection or channel error, the error stack is saved to `$TMPDIR/$PROCESS_NAME.stack` and attempt to reconnect if so configured.  If  `$TMPDIR` is undefined, the default is `/var/tmp`.
+
+The connection is established asynchronously in the transport's `open()`, which `log.open()` awaits.  Messages logged before the connection is ready are buffered and flushed once connected, so awaiting `log.open()` is not required for delivery; `await` it if you want the connection (or an `onConnectError` failure) resolved before continuing.
 
 **Parameters**
 
@@ -372,6 +395,7 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
   - `reconnect`: options for re-connection:
     * `retryTimeout`: how long in seconds to continue attempting re-connections before emitting an `error` event; default 0.
     * `retryDelay`: how long in seconds to wait between re-connection attempts; default 5.
+  - `onConnectError`: optional callback `(err) => {}` invoked if the initial connection fails; default logs the error and calls `process.exit(1)`.  If the callback throws, the `Promise` returned by `log.open()` rejects with the thrown error.
   - `routeKeyPrefix`: prefix for the routing key; default "log".  The routing key format is "prefix.proc_name.facility.level".
   - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
   - `facility`: optional syslog facility name, one of `AUTH`, `CRON`, `DAEMON`, `KERN`, `LOCAL0`, `LOCAL1`, `LOCAL2`, `LOCAL3`, `LOCAL4`, `LOCAL5`, `LOCAL6`, `LOCAL7`, `LPR`, `MAIL`, `NEWS`, `SYSLOG`, `USER`, `UUCP`; default `LOCAL0`.  Note the facility name in the AMQP log message is informational only.

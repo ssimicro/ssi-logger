@@ -163,16 +163,28 @@ function close(optDone) {
 
 // Install a transport if options contains a property with a name
 // that matches a known transport and has `enable` set to `true`.
-function open(options, user_transports) {
+async function open(options, user_transports) {
     close();
     options = _.defaultsDeep(options, module.exports.options.transports);
     const mergedTransports = _.merge({}, transports, user_transports);
-    _.forEach(options, (args, transport) => {
+
+    // Instantiate every enabled transport and kick off its async setup.
+    // Instantiation is synchronous so that all transports — and the `log`
+    // event listener below — are in place the moment open() returns; the
+    // open() promises are awaited together afterward so emitting a log
+    // immediately after calling open() still reaches every transport.
+    const opening = [];
+    for (const transport of Object.keys(options)) {
+        const args = options[transport];
         if (_.isObject(args) && _.get(args, 'enable', true) === true && _.has(mergedTransports, transport)) {
             activeTransports[transport] = new mergedTransports[transport](args);
+            opening.push(activeTransports[transport].open());
         }
-    });
+    }
+
     process.on('log', dispatcher);
+
+    await Promise.all(opening);
 }
 
 function transformLogEvent(log_event) {

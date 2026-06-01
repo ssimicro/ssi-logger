@@ -30,7 +30,6 @@
   "dependencies": {
     "amqplib": "^1.0.3",
     "chalk": "^4.1.0",
-    "deasync": "^0.1.31",
     "lodash": "^4.18.1",
     "logformat": "^5.0.2",
     "@ssimicro/postmodern-syslog": "^3.0.1",
@@ -44,7 +43,7 @@
     "mocha": "^11.7.5"
   },
   "jshintConfig": {
-    "esversion": 6,
+    "esversion": 8,
     "bitwise": true,
     "curly": true,
     "eqeqeq": true,

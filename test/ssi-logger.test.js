@@ -929,61 +929,76 @@ describe('ssi-logger', function() {
         });
 
         describe('connect', function () {
-            it('should fail for invalid credentials', function (done) {
-                expect(() => {
-                    new AmqpTransport({
-                        url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
-                        onConnectError: (err) => { throw err; },
-                    });
-                }).to.throwError();
-                done();
+            it('should fail for invalid credentials', async function () {
+                // Connection now happens in open() rather than the
+                // constructor; a throwing onConnectError rejects open().
+                const t = new AmqpTransport({
+                    url: 'amqp://unknown_username:bad_password@amqp.ssimicro.com',
+                    onConnectError: (err) => { throw err; },
+                });
+                let caught = null;
+                try {
+                    await t.open();
+                } catch (err) {
+                    caught = err;
+                }
+                expect(caught).not.to.be(null);
             });
             it('should not reconnect on error when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-                process.on("log_amqp_transport_gone", (err) => {
-                    expect(err).not.to.be(null);
-                    expect(err.attempts).to.be(0);
-                    expect(err.message).to.contain("disabled");
-                    done();
+                transport.open().then(() => {
+                    process.on("log_amqp_transport_gone", (err) => {
+                        expect(err).not.to.be(null);
+                        expect(err.attempts).to.be(0);
+                        expect(err.message).to.contain("disabled");
+                        done();
+                    });
+                    transport.producer.bail(new Error('error triggered by test'));
                 });
-                transport.producer.bail(new Error('error triggered by test'));
             });
             it('should reconnect on error when reconnect.retryTimeout > 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
+                transport.open().then(() => {
+                    const conn_before = transport.producer.conn;
+                    transport.producer.bail(new Error('error triggered by test'));
 
-                const conn_before = transport.producer.conn;
-                transport.producer.bail(new Error('error triggered by test'));
-
-                setTimeout(() => {
-                    expect(transport.producer.conn).not.to.be(null);
-                    expect(transport.producer.conn).not.to.be(conn_before);
-                    done();
-                }, 3000);
+                    setTimeout(() => {
+                        expect(transport.producer.conn).not.to.be(null);
+                        expect(transport.producer.conn).not.to.be(conn_before);
+                        done();
+                    }, 3000);
+                });
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout = 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-                transport.producer.close(() => {
-                    expect(transport.producer.conn).to.be(null);
-                    done();
+                transport.open().then(() => {
+                    transport.producer.close(() => {
+                        expect(transport.producer.conn).to.be(null);
+                        done();
+                    });
                 });
             });
             it('should not reconnect on graceful close when reconnect.retryTimeout > 0', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 2, retryDelay: 0}}, options.transports.amqp));
-                transport.producer.close(() => {
-                    expect(transport.producer.conn).to.be(null);
-                    done();
+                transport.open().then(() => {
+                    transport.producer.close(() => {
+                        expect(transport.producer.conn).to.be(null);
+                        done();
+                    });
                 });
             });
             it('should ignore channel already closed errors', function (done) {
                 transport = new AmqpTransport(_.defaultsDeep({reconnect: {retryTimeout: 0}}, options.transports.amqp));
-                expect(function () {
-                    // Simulate unexpected channel closure.
-                    transport.producer.chan.close((err) => {
-                        // Attempt normal close.
-                        transport.producer.close();
-                        done();
-                    });
-                }).to.not.throwException();
+                transport.open().then(() => {
+                    expect(function () {
+                        // Simulate unexpected channel closure.
+                        transport.producer.chan.close((err) => {
+                            // Attempt normal close.
+                            transport.producer.close();
+                            done();
+                        });
+                    }).to.not.throwException();
+                });
             });
         });
 
@@ -998,62 +1013,66 @@ describe('ssi-logger', function() {
             });
 
             it('should queue log message', function (done) {
-                log.open(options.transports);
-                // Disconnect and queue messages for examination.
-                log.activeTransports.amqp.end();
+                log.open(options.transports).then(() => {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                log.info("Say something clever.");
+                    log.info("Say something clever.");
 
-                const queue = log.activeTransports.amqp.producer.queue;
-                expect(queue.length).to.be(1);
-                const hdr = queue[0].publishOptions.headers;
-                expect(hdr.Level).to.be('INFO');
-                expect(hdr.Facility).to.be('LOCAL0');
-                expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
-                done();
+                    const queue = log.activeTransports.amqp.producer.queue;
+                    expect(queue.length).to.be(1);
+                    const hdr = queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('INFO');
+                    expect(hdr.Facility).to.be('LOCAL0');
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                    done();
+                });
             });
             it('should filter log messages below ERROR', function (done) {
-                log.open(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports));
-                // Disconnect and queue messages for examination.
-                log.activeTransports.amqp.end();
+                log.open(_.defaultsDeep({amqp: {level: 'ERROR'}}, options.transports)).then(() => {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                log.debug("Say something clever.");
-                log.warning("Hey little sister, what have you done?");
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
-                done();
+                    log.debug("Say something clever.");
+                    log.warning("Hey little sister, what have you done?");
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
+                    done();
+                });
             });
             it('should not filter log message ERROR or above', function (done) {
-                log.open(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports));
-                // Disconnect and queue messages for examination.
-                log.activeTransports.amqp.end();
+                log.open(_.defaultsDeep({amqp: {level: 'ERROR', facility: 'DAEMON'}}, options.transports)).then(() => {
+                    // Disconnect and queue messages for examination.
+                    log.activeTransports.amqp.end();
 
-                log.error("Say something clever.");
-                log.alert("Hey little sister, what have you done?");
+                    log.error("Say something clever.");
+                    log.alert("Hey little sister, what have you done?");
 
-                const queue = log.activeTransports.amqp.producer.queue;
-                expect(queue.length).to.be(2);
+                    const queue = log.activeTransports.amqp.producer.queue;
+                    expect(queue.length).to.be(2);
 
-                let hdr;
+                    let hdr;
 
-                hdr = queue[0].publishOptions.headers;
-                expect(hdr.Level).to.be('ERROR');
-                expect(hdr.Facility).to.be('DAEMON');
-                expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
+                    hdr = queue[0].publishOptions.headers;
+                    expect(hdr.Level).to.be('ERROR');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(queue[0].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Say something clever.`);
 
-                hdr = queue[1].publishOptions.headers;
-                expect(hdr.Level).to.be('ALERT');
-                expect(hdr.Facility).to.be('DAEMON');
-                expect(queue[1].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Hey little sister, what have you done?`);
+                    hdr = queue[1].publishOptions.headers;
+                    expect(hdr.Level).to.be('ALERT');
+                    expect(hdr.Facility).to.be('DAEMON');
+                    expect(queue[1].payload).to.be(`${hdr.Created} ${hdr.Host} ${hdr.Process}[${process.pid}]: Hey little sister, what have you done?`);
 
-                done();
+                    done();
+                });
             });
         });
 
         describe('payload preparation', function () {
             beforeEach((done) => {
-                log.open(options.transports);
-                log.censor([]);
-                done();
+                log.open(options.transports).then(() => {
+                    log.censor([]);
+                    done();
+                });
             });
 
             afterEach((done) => {
@@ -1540,17 +1559,18 @@ describe('ssi-logger', function() {
             });
 
             it('should queue messages', function (done) {
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
-                // Disable drain to force queuing.
-                log.activeTransports.amqp.producer.isFlowing = false;
+                log.open(options.transports).then(() => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    // Disable drain to force queuing.
+                    log.activeTransports.amqp.producer.isFlowing = false;
 
-                log.info("heaven");
-                log.info("world");
-                log.info("hell");
+                    log.info("heaven");
+                    log.info("world");
+                    log.info("hell");
 
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
-                done();
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                    done();
+                });
             });
             it('should flush queued messages on close()', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1560,16 +1580,17 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
-                // Disable drain to force queuing.
-                log.activeTransports.amqp.producer.isFlowing = false;
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
+                log.open(options.transports).then(() => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    // Disable drain to force queuing.
+                    log.activeTransports.amqp.producer.isFlowing = false;
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
 
-                log.info("message 1");
-                log.info("message 2");
-                log.info("message 3");
-                log.close();
+                    log.info("message 1");
+                    log.info("message 2");
+                    log.info("message 3");
+                    log.close();
+                });
             });
             it('should publish log messages to AMQP', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1596,11 +1617,11 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-
-                log.notice("Circuit Test 1", {count: 1});
-                log.notice("Circuit Test 2", {count: 2});
-                log.notice("Circuit Test 3", {count: 3});
+                log.open(options.transports).then(() => {
+                    log.notice("Circuit Test 1", {count: 1});
+                    log.notice("Circuit Test 2", {count: 2});
+                    log.notice("Circuit Test 3", {count: 3});
+                });
             });
             it('should queue messages after a blocked event until an unblocked event', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1611,17 +1632,18 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
-                log.activeTransports.amqp.producer.conn.emit('blocked');
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
+                log.open(options.transports).then(() => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    log.activeTransports.amqp.producer.conn.emit('blocked');
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(0);
 
-                log.info("message 1");
-                log.info("message 2");
-                log.info("message 3");
+                    log.info("message 1");
+                    log.info("message 2");
+                    log.info("message 3");
 
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
-                log.activeTransports.amqp.producer.conn.emit('unblocked');
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                    log.activeTransports.amqp.producer.conn.emit('unblocked');
+                });
             });
             it('should simulate full write buffer, queue log messages, then drain', function (done) {
                 consumer.consume(function (err, msg, next) {
@@ -1632,26 +1654,28 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(options.transports);
-                expect(log.activeTransports.amqp).not.to.be(null);
+                log.open(options.transports).then(() => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
 
-                // Disable drain to force queuing.
-                log.activeTransports.amqp.producer.isFlowing = false;
+                    // Disable drain to force queuing.
+                    log.activeTransports.amqp.producer.isFlowing = false;
 
-                log.info("heaven");
-                log.info("world");
-                log.info("hell");
+                    log.info("heaven");
+                    log.info("world");
+                    log.info("hell");
 
-                expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
+                    expect(log.activeTransports.amqp.producer.queue.length).to.be(3);
 
-                // Enable drain.
-                log.activeTransports.amqp.producer.isFlowing = true;
+                    // Enable drain.
+                    log.activeTransports.amqp.producer.isFlowing = true;
 
-                log.info("next message triggers drain");
+                    log.info("next message triggers drain");
 
-                done();
+                    done();
+                });
             });
             it('should continue sending messages after an error and reconnect', function (done) {
+                let conn_before;
                 consumer.consume(function (err, msg, next) {
                     next(null);
                     if (msg.fields.deliveryTag === 3) {
@@ -1661,17 +1685,18 @@ describe('ssi-logger', function() {
                     }
                 });
 
-                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports));
-                expect(log.activeTransports.amqp).not.to.be(null);
-                const conn_before = log.activeTransports.amqp.producer.conn;
+                log.open(_.defaultsDeep({amqp: {reconnect: {retryTimeout: 2, retryDelay: 0}}}, options.transports)).then(() => {
+                    expect(log.activeTransports.amqp).not.to.be(null);
+                    conn_before = log.activeTransports.amqp.producer.conn;
 
-                log.info("message 1");
+                    log.info("message 1");
 
-                // Similate error, should disconnect, then reconnect.
-                log.activeTransports.amqp.producer.bail(new Error('error triggered by test'));
+                    // Similate error, should disconnect, then reconnect.
+                    log.activeTransports.amqp.producer.bail(new Error('error triggered by test'));
 
-                log.info("message 2");
-                log.info("message 3");
+                    log.info("message 2");
+                    log.info("message 3");
+                });
             });
         });
     });
