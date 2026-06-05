@@ -589,6 +589,7 @@ As well as several manual tests:
 - use a correlation ID in each log message related to the same request to make execution easier to trace.
 - use the `censor()` feature to censor sensitive information such as credit card numbers, passwords, and keys.
 - think of the person dealing with the problem when constructing error log messages. Consider providing instructions for fixing the problem in the log message and/or re-running failed commands. For example, include a `curl` command in the log message that the troubleshooter can use to re-run a failed request.
+- log actions after they occur.
 
 ## License
 
