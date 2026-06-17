@@ -11,6 +11,7 @@
         "password",
         "password2",
         "passwordAgain",
+        "password_again",
         "privateKey",
         "secret"
     ],
