@@ -7,7 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "pretest": "test -e test/ssi-logger.conf || cp test/ssi-logger.conf.example test/ssi-logger.conf; jshint *.js lib",
+    "requirelint": "require-case-linter .",
+    "pretest": "npm run requirelint && test -e test/ssi-logger.conf || cp test/ssi-logger.conf.example test/ssi-logger.conf; jshint *.js lib",
     "test": "mocha -R spec test/*.test.js",
     "testall": "TESTALL=YES mocha -R spec test/*.test.js"
   },
@@ -28,17 +29,18 @@
   },
   "homepage": "https://github.com/ssimicro/ssi-logger",
   "dependencies": {
+    "@ssimicro/postmodern-syslog": "^3.0.1",
     "amqplib": "^1.0.3",
     "chalk": "^4.1.0",
     "deasync": "^0.1.31",
     "lodash": "^4.18.1",
     "logformat": "^5.0.2",
-    "@ssimicro/postmodern-syslog": "^3.0.1",
     "moment": "^2.30.1",
     "semver": "7.7.4",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@ssi/require-case-linter": "^1.0.2",
     "expect.js": "^0.3.1",
     "jshint": "^2.13.6",
     "mocha": "^11.7.5"
