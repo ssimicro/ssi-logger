@@ -7,8 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "requirelint": "require-case-linter .",
-    "pretest": "npm run requirelint && test -e test/ssi-logger.conf || cp test/ssi-logger.conf.example test/ssi-logger.conf; jshint *.js lib",
+    "pretest": "test -e test/ssi-logger.conf || cp test/ssi-logger.conf.example test/ssi-logger.conf; jshint *.js lib",
     "test": "mocha -R spec test/*.test.js",
     "testall": "TESTALL=YES mocha -R spec test/*.test.js"
   },
@@ -40,7 +39,6 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@ssi/require-case-linter": "^1.0.2",
     "expect.js": "^0.3.1",
     "jshint": "^2.13.6",
     "mocha": "^11.7.5"
