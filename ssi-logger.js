@@ -135,7 +135,11 @@ const activeTransports = {};
 function dispatcher(event) {
     Object.keys(activeTransports)
         .filter((transport) => activeTransports[transport].filter(event))
-        .forEach((transport) => activeTransports[transport].chunkify(event).forEach((chunk) => activeTransports[transport].log(chunk)));
+        .forEach((transport) => {
+            activeTransports[transport].chunkify(
+                activeTransports[transport].map(event)
+            ).forEach((chunk) => activeTransports[transport].log(chunk));
+        });
 }
 
 function close(optDone) {

@@ -44,7 +44,7 @@
     "mocha": "^11.8.0"
   },
   "jshintConfig": {
-    "esversion": 6,
+    "esversion": 11,
     "bitwise": true,
     "curly": true,
     "eqeqeq": true,

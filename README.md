@@ -378,6 +378,7 @@ Log large JSON messages to an AMQP server.  In the event of a connection or chan
   - `format`: one of `text`, `json`; default `text`.  `text` sends text log message with all the arguments flattened out into message.  `json` formats the message only those % arguments specified, the remaining unused are pased as JSON.
   - `traceLevel`: 0 = disable, 1 = connection, 2 = verbose; default 0.
   - `chunkSize`: split long messages into messages no longer than `chunkSize`. Default `8192`.
+  - `stripNewlines`: strip `\r` and `\n` characters. Default `true`
 
 Example:
 
@@ -404,6 +405,7 @@ Example:
   - `timestamp`: `true` to prepend ISO 8601 timestamp to all console messages; default `false`.
   - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `DEBUG`.
   - `chunkSize`: split long messages into messages no longer than `chunkSize`. Default `8192`.
+  - `stripNewlines`: strip `\r` and `\n` characters. Default `false`
 
 Logs all messages to the console in the form:
 
@@ -431,6 +433,7 @@ Colors can also be disabled at runtime with the `--no-color` command line option
   - `timeout`: `true` to prepend ISO 8601 timestamp to all console messages; default `true`.
   - `level`: optional log level where only messages of this level or higher are published (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `DEBUG`.
   - `chunkSize`: split long messages into messages no longer than `chunkSize`. Default `8192`.
+  - `stripNewlines`: strip `\r` and `\n` characters. Default `true`
 
 Logs all messages to the console in the form:
 
@@ -456,6 +459,7 @@ Colors can also be disabled at runtime with the `--no-color` command line option
   - `facility`: one of `LOG_AUTH`, `LOG_CRON`, `LOG_DAEMON`, `LOG_KERN`, `LOG_LOCAL0`, `LOG_LOCAL1`, `LOG_LOCAL2`, `LOG_LOCAL3`, `LOG_LOCAL4`, `LOG_LOCAL5`, `LOG_LOCAL6`, `LOG_LOCAL7`, `LOG_LPR`, `LOG_MAIL`, `LOG_NEWS`, `LOG_SYSLOG`, `LOG_USER`, `LOG_UUCP`; default `LOG_LOCAL0`.
   - `level`: one of (ordered high to low) `EMERG`, `ALERT`, `CRIT`, `ERROR`, `WARN`, `NOTICE`, `INFO`, `DEBUG`; default `INFO`.
   - `chunkSize`: split long messages into messages no longer than `chunkSize`. Default `8192`.
+  - `stripNewlines`: strip `\r` and `\n` characters. Default `true`
 
 
 Examples:
